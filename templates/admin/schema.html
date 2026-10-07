@@ -15,7 +15,7 @@
 
   <div class="kpis" style="margin-bottom:26px">
     <div class="kpi"><span>Relations</span><b>{{ counts.tables }}</b><em>all in 3NF</em></div>
-    <div class="kpi"><span>Constraints</span><b>{{ counts.constraints }}</b><em>PK · FK · UNIQUE · CHECK</em></div>
+    <div class="kpi"><span>Constraints</span><b>{{ counts.constraints }}</b><em>PK · FK · UNIQUE · CHECK{% if counts.notnull %} (+{{ counts.notnull }} NOT NULL){% endif %}</em></div>
     <div class="kpi"><span>Triggers</span><b>{{ counts.triggers }}</b><em>rules a CHECK cannot express</em></div>
     <div class="kpi"><span>Views</span><b>{{ counts.views }}</b><em>the reports</em></div>
   </div>
@@ -90,6 +90,7 @@
               {% if c.kind == 'PRIMARY KEY' %}<span class="pill pill--sodium">PK</span>
               {% elif c.kind == 'FOREIGN KEY' %}<span class="pill pill--taxi">FK</span>
               {% elif c.kind == 'UNIQUE' %}<span class="pill" style="color:var(--violet,#b58ce0)">AK</span>
+              {% elif c.kind == 'NOT NULL' %}<span class="pill">NOT NULL</span>
               {% else %}<span class="pill pill--threshold">CHECK</span>{% endif %}
             </td>
             <td class="mono" style="font-size:11px">{{ c.name }}</td>

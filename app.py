@@ -842,12 +842,13 @@ def admin_schema():
                             WHEN 'f' THEN 'FOREIGN KEY'
                             WHEN 'u' THEN 'UNIQUE'
                             WHEN 'c' THEN 'CHECK'
+                            WHEN 'n' THEN 'NOT NULL'
                             ELSE contype::text END AS kind,
                pg_get_constraintdef(oid) AS definition
           FROM pg_constraint
          WHERE connamespace = 'public'::regnamespace
          ORDER BY conrelid::regclass::text,
-                  array_position(ARRAY['p','u','f','c'], contype::text), conname
+                  array_position(ARRAY['p','u','f','c','n'], contype::text), conname
         """
     )
     indexes = db.query(
@@ -874,9 +875,15 @@ def admin_schema():
          WHERE schemaname = 'public' ORDER BY viewname
         """
     )
+    # PostgreSQL 18 promoted NOT NULL to real pg_constraint rows, so a raw
+    # count of this table jumps by ~50 between server versions. Count the
+    # declared ones separately from the column-level NOT NULLs so the number
+    # means the same thing on 17 and on 18.
+    declared = [c for c in constraints if c["kind"] != "NOT NULL"]
     counts = {
         "tables": len(tables),
-        "constraints": len(constraints),
+        "constraints": len(declared),
+        "notnull": len(constraints) - len(declared),
         "triggers": len(triggers),
         "views": len(views),
         "partial": len(indexes),
