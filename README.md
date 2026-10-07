@@ -196,6 +196,23 @@ Because this repository is public, `init_db.py` **refuses to seed a remote
 database** unless you set your own `ADMIN_PASSWORD` — otherwise the admin
 dashboard of the deployed site would be open to anyone who read the source.
 
+Seed a remote database with `--light`. Every demo booking goes through
+`book_seats()` on its own connection, which is the point — the sample data is
+consistent with every constraint by construction — but ~690 of them across a
+region boundary takes ten minutes. `--light` seeds a fifth of that in about
+two.
+
+```bash
+export DATABASE_URL='postgresql://...-pooler...neon.tech/neondb?sslmode=require'
+export ADMIN_PASSWORD='something long'
+python init_db.py --light
+```
+
+Point `DATABASE_URL` at Neon's **pooled** endpoint. The app disables psycopg's
+automatic prepared statements because that endpoint is PgBouncer in
+transaction mode, where a statement prepared on one backend connection may not
+exist on the next.
+
 Render's free tier sleeps after 15 minutes idle, so the first request after a
 quiet spell takes ~40s. A free pinger (cron-job.org, every 10 min) keeps it
 warm — worth setting up before a demo.

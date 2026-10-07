@@ -9,6 +9,7 @@ the seat guarantee true under concurrency.
 
 from __future__ import annotations
 
+import atexit
 import os
 import random
 import secrets
@@ -60,7 +61,19 @@ def pool() -> ConnectionPool:
             kwargs=_CONN_KW,
             open=True,
         )
+        # A pool keeps worker threads alive. Without this, any short script
+        # that touches the database (init_db.py, a one-off query) prints
+        # "couldn't stop thread pool-1-worker-0" on its way out.
+        atexit.register(close_pool)
     return _pool
+
+
+def close_pool() -> None:
+    """Shut the pool down. Idempotent, so atexit may call it after a caller has."""
+    global _pool
+    if _pool is not None:
+        _pool.close()
+        _pool = None
 
 
 @contextmanager
