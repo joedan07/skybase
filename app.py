@@ -96,6 +96,21 @@ def rupees(v):
     return f"{float(v):,.0f}"
 
 
+@app.template_filter("rupees_short")
+def rupees_short(v):
+    """Compact Indian notation for headline numbers: Rs 64.6 L, Rs 1.2 Cr.
+    A ten-character figure at KPI size does not fit its tile, so the tile shows
+    this and the full figure stays available in the tooltip."""
+    if v is None:
+        return "—"
+    v = float(v)
+    if abs(v) >= 1e7:
+        return f"₹{v / 1e7:.2f} Cr"
+    if abs(v) >= 1e5:
+        return f"₹{v / 1e5:.1f} L"
+    return f"₹{v:,.0f}"
+
+
 @app.template_filter("hhmm")
 def hhmm(dt):
     return dt.strftime("%H:%M") if dt else "—"
@@ -815,10 +830,15 @@ def admin_lab_run():
                               "the partial index refused the duplicate seat",
                        raw=str(e).split("\n")[0])
         except db.SeatUnavailable as e:
-            rec.update(outcome="BLOCKED THEN BAILED", sqlstate="—",
-                       detail=f"waited for the row lock, then read the committed "
-                              f"truth: {', '.join(e.seat_nos)} was taken. "
-                              f"No error, no duplicate.")
+            if use_lock:
+                rec.update(outcome="BLOCKED THEN BAILED", sqlstate="—",
+                           detail=f"waited for the row lock, then read the committed "
+                                  f"truth: {', '.join(e.seat_nos)} was taken. "
+                                  f"No error, no duplicate.")
+            else:
+                rec.update(outcome="SEAT ALREADY TAKEN", sqlstate="—",
+                           detail=f"{', '.join(e.seat_nos)} was already sold when this "
+                                  f"agent looked. No lock was involved.")
         except psycopg.errors.CheckViolation as e:
             rec.update(outcome="REJECTED", sqlstate="23514",
                        detail="a trigger refused it",

@@ -381,7 +381,10 @@ em {
 
 /* --------------------------------------------------------------- the hero */
 
-.hero { padding: 40px 0 46px; position: relative; }
+/* padding-block, never the padding shorthand: these elements also carry .wrap,
+   and `padding: 40px 0` silently zeroed the .wrap gutter, so on any viewport
+   narrower than the 1200px shell the content ran flush to the screen edge. */
+.hero { padding-block: 40px 46px; position: relative; }
 
 .hero__kicker { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
 .hero__kicker::before {
@@ -924,8 +927,9 @@ td.num { text-align: right; font-family: var(--f-mono); font-variant-numeric: ta
   font-family: var(--f-mono); font-size: 10px;
   letter-spacing: 0.13em; text-transform: uppercase; color: var(--fg-3);
 }
+.kpi { min-width: 0; }
 .kpi > b {
-  display: block; font-family: var(--f-display); font-size: 36px;
+  display: block; font-family: var(--f-display); font-size: clamp(26px, 3.4vw, 36px);
   font-weight: 800; margin-top: 6px; color: var(--sodium);
   font-variant-numeric: tabular-nums; line-height: 1;
 }
@@ -1013,11 +1017,11 @@ code {
 
 /* ------------------------------------------------------------------ misc */
 
-.section { padding: 40px 0; }
+.section { padding-block: 40px; }
 .section__head { margin-bottom: 20px; }
 .section__head h2 { font-size: clamp(23px, 3.6vw, 31px); text-transform: uppercase; margin-bottom: 8px; }
 
-.auth { min-height: calc(100svh - 160px); display: grid; place-items: center; padding: 32px 0; }
+.auth { min-height: calc(100svh - 160px); display: grid; place-items: center; padding-block: 32px; }
 .auth__card { width: 100%; max-width: 410px; }
 
 .empty {
@@ -1037,7 +1041,7 @@ code {
   letter-spacing: 0.14em; text-transform: uppercase; color: var(--fg-3);
 }
 
-.err { min-height: calc(100svh - 160px); display: grid; place-items: center; text-align: center; padding: 32px 0; }
+.err { min-height: calc(100svh - 160px); display: grid; place-items: center; text-align: center; padding-block: 32px; }
 .err__code {
   font-family: var(--f-display); font-size: clamp(66px, 16vw, 140px);
   font-weight: 800; line-height: 1; color: var(--ink-4);

@@ -212,11 +212,6 @@ def book_seats(
                 raise ValueError("one booking cannot mix cabins")
             cabin = cabins.pop()
 
-            # Simulates a slow payment step while the lock is held, so the
-            # race is observable in the lab.
-            if hold_ms:
-                time.sleep(hold_ms / 1000.0)
-
             # ── 2 · is the seat still free? ──────────────────────────────
             cur.execute(
                 """
@@ -233,6 +228,17 @@ def book_seats(
             if taken:
                 conn.rollback()
                 raise SeatUnavailable(taken)
+
+            # Simulates a slow payment step, so the race is observable in the
+            # lab. It sits AFTER the free check on purpose: with the lock on,
+            # the second agent is parked at the FOR UPDATE above for the whole
+            # delay; with the lock off, both agents have already seen "free"
+            # and both go on to INSERT, so the partial unique index -- not
+            # luck -- decides. Placed before the check, the slower agent
+            # sometimes looked only after the faster one had committed, and the
+            # outcome depended on timing.
+            if hold_ms:
+                time.sleep(hold_ms / 1000.0)
 
             # ── 3 · the booking ─────────────────────────────────────────
             booking_id = None

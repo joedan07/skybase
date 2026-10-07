@@ -19,7 +19,7 @@
     <div class="kpi"><span>Flights today</span><b>{{ kpi.flights_today }}</b><em>scheduled rotations</em></div>
     <div class="kpi"><span>Bookings today</span><b>{{ kpi.bookings_today }}</b><em>confirmed PNRs</em></div>
     <div class="kpi"><span>Live tickets</span><b>{{ kpi.live_tickets }}</b><em>not cancelled</em></div>
-    <div class="kpi"><span>Net revenue</span><b>₹{{ kpi.net_revenue|rupees }}</b><em>payments less refunds</em></div>
+    <div class="kpi"><span>Net revenue</span><b title="₹{{ kpi.net_revenue|rupees }}">{{ kpi.net_revenue|rupees_short }}</b><em>payments less refunds</em></div>
     <div class="kpi"><span>Avg load factor</span><b>{{ kpi.avg_load or 0 }}%</b><em>last 3 days flown</em></div>
     <div class="kpi"><span>Customers</span><b>{{ kpi.customers }}</b><em>registered accounts</em></div>
   </div>

@@ -15,7 +15,7 @@
     <div class="kpi"><span>Bookings</span><b>{{ summary.bookings }}</b><em>all time</em></div>
     <div class="kpi"><span>Live tickets</span><b>{{ summary.live_tickets }}</b><em>not cancelled</em></div>
     <div class="kpi"><span>Cancelled</span><b>{{ summary.cancelled }}</b><em>PNRs voided</em></div>
-    <div class="kpi"><span>Net revenue</span><b>₹{{ summary.net|rupees }}</b><em>payments less refunds</em></div>
+    <div class="kpi"><span>Net revenue</span><b title="₹{{ summary.net|rupees }}">{{ summary.net|rupees_short }}</b><em>payments less refunds</em></div>
   </div>
 
   <form class="slip" method="get" style="margin-bottom:20px">
