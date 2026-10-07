@@ -58,7 +58,7 @@
   <div class="section__head stack">
     <div>
       <h2>Next departures</h2>
-      <p class="lede">Straight off <code>v_seat_availability</code> — live seat counts, not a cached number.</p>
+      <p class="lede">Live seat counts, straight from the database.</p>
     </div>
     <span class="pill pill--threshold push"><i class="dot dot--live"></i>Live</span>
   </div>
@@ -99,8 +99,7 @@
 <section class="section wrap">
   <div class="section__head">
     <h2>The whole network</h2>
-    <p class="lede">Six directed routes among three airports — fixed reference data, seeded once.
-      Every ordered pair, so <code>UNIQUE(origin_id, dest_id)</code> is exactly full.</p>
+    <p class="lede">Six routes between three airports. Every pair, both directions.</p>
   </div>
 
   <div class="grid grid--3">
@@ -136,21 +135,20 @@
     <div class="card">
       <span class="tag tag--sodium">One seat, one passenger</span>
       <h3 style="margin:8px 0">A promise the database keeps</h3>
-      <p class="lede" style="font-size:13.5px">A partial unique index on
-        <code>(flight_id, seat_id)</code> makes two live tickets on one seat
-        unrepresentable — not unlikely, <em>impossible</em>.</p>
+      <p>Two passengers can never hold the same seat. The database refuses it
+        outright — not unlikely, <em>impossible</em>.</p>
     </div>
     <div class="card">
       <span class="tag tag--taxi">Frozen fares</span>
       <h3 style="margin:8px 0">Your price cannot change later</h3>
-      <p class="lede" style="font-size:13.5px">The fare is copied onto the ticket at purchase.
-        Repricing a flight tomorrow can never rewrite what you paid today.</p>
+      <p>Your fare is copied onto the ticket when you pay. A price change
+        tomorrow cannot rewrite what you paid today.</p>
     </div>
     <div class="card">
       <span class="tag tag--threshold">All or nothing</span>
       <h3 style="margin:8px 0">Booking is one transaction</h3>
-      <p class="lede" style="font-size:13.5px">Booking, tickets and payment commit together.
-        A failure half-way leaves no orphan rows behind.</p>
+      <p>Booking, tickets and payment are saved together. If anything fails,
+        nothing is saved at all.</p>
     </div>
   </div>
 </section>

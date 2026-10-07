@@ -509,6 +509,69 @@ def admin_home():
                            departures=departures, recent=recent)
 
 
+@app.route("/admin/bookings")
+@admin_only
+def admin_bookings():
+    """Every booking ever made, searchable. The operations answer to
+    "a passenger is on the phone and only knows their name"."""
+    q = request.args.get("q", "").strip()
+    status = request.args.get("status", "")
+    page = max(1, int(request.args.get("page", 1) or 1))
+    per = 25
+
+    where, params = [], []
+    if q:
+        # One box searching PNR, name, email, ticket number or flight number.
+        where.append("""(b.pnr ILIKE %s OR p.full_name ILIKE %s OR p.email ILIKE %s
+                         OR EXISTS (SELECT 1 FROM ticket t2
+                                     JOIN flight f2 ON f2.flight_id = t2.flight_id
+                                    WHERE t2.booking_id = b.booking_id
+                                      AND (t2.ticket_no ILIKE %s OR f2.flight_no ILIKE %s)))""")
+        params += [f"%{q}%"] * 5
+    if status in ("CONFIRMED", "CANCELLED"):
+        where.append("b.status = %s")
+        params.append(status)
+    clause = ("WHERE " + " AND ".join(where)) if where else ""
+
+    total = db.query(
+        f"""SELECT count(*) AS n FROM booking b
+              JOIN passenger p ON p.passenger_id = b.passenger_id {clause}""",
+        tuple(params), one=True)["n"]
+
+    rows = db.query(
+        f"""
+        SELECT b.booking_id, b.pnr, b.booked_at, b.status,
+               p.full_name, p.email, p.phone,
+               count(t.ticket_id) FILTER (WHERE t.status <> 'CANCELLED') AS pax,
+               COALESCE(sum(t.fare_paid) FILTER (WHERE t.status <> 'CANCELLED'), 0) AS value,
+               COALESCE((SELECT sum(amount) FROM payment
+                          WHERE booking_id = b.booking_id), 0) AS paid,
+               string_agg(DISTINCT f.flight_no, ' ') AS flights,
+               min(f.sched_dep) AS departs
+          FROM booking b
+          JOIN passenger p ON p.passenger_id = b.passenger_id
+          LEFT JOIN ticket t ON t.booking_id = b.booking_id
+          LEFT JOIN flight f ON f.flight_id = t.flight_id
+          {clause}
+         GROUP BY b.booking_id, p.full_name, p.email, p.phone
+         ORDER BY b.booked_at DESC
+         LIMIT {per} OFFSET {(page - 1) * per}
+        """,
+        tuple(params))
+
+    summary = db.query(
+        """
+        SELECT count(*)                                            AS bookings,
+               count(*) FILTER (WHERE status = 'CANCELLED')        AS cancelled,
+               (SELECT count(*) FROM ticket WHERE status <> 'CANCELLED') AS live_tickets,
+               (SELECT COALESCE(sum(amount), 0) FROM payment)      AS net
+          FROM booking
+        """, one=True)
+
+    return render_template("admin/bookings.html", rows=rows, q=q, status=status,
+                           page=page, per=per, total=total, summary=summary,
+                           pages=max(1, -(-total // per)))
+
 @app.route("/admin/flights")
 @admin_only
 def admin_flights():

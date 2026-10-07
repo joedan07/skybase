@@ -97,10 +97,9 @@
     <div class="stack">
       <div>
         <h3>Cancel this booking</h3>
-        <p class="lede" style="font-size:13px;margin-top:4px">
-          Refund is computed from the fare <em>frozen on each ticket</em>: 90% back more than
-          24 hours before departure, 50% inside 24 hours, nothing once flown.
-          The seats are released and the refund is written as a negative payment row.
+        <p class="lede" style="margin-top:4px">
+          90% back more than 24 hours before departure, 50% inside 24 hours,
+          nothing once flown. Your seats are released immediately.
         </p>
       </div>
       <form method="post" action="{{ url_for('cancel', booking_id=booking.booking_id) }}" class="push">

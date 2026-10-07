@@ -80,37 +80,11 @@
         </label>
 
         <button class="btn btn--block" id="go" type="submit" disabled>Pick a seat</button>
-        <p class="tag" style="margin-top:10px;text-align:center">
-          Booking, tickets and payment commit in one transaction
+        <p class="tag" style="margin-top:12px;text-align:center">
+          Your seat is held the moment you pay
         </p>
       </div>
     </form>
   </div>
-
-  <details class="sqlbox">
-    <summary>What happens when you press pay</summary>
-    <pre>BEGIN;
-
--- 1 · take an exclusive row lock on the chosen seats. ORDER BY seat_id so
---     two multi-seat bookings can never deadlock against each other.
-SELECT seat_id FROM seat WHERE seat_id = ANY(%s) ORDER BY seat_id FOR UPDATE;
-
--- 2 · still free? a second agent now blocks on the line above instead of
---     reading a stale "seat is free"
-SELECT s.seat_no FROM ticket t JOIN seat s USING (seat_id)
- WHERE t.flight_id = %s AND t.seat_id = ANY(%s) AND t.status &lt;&gt; 'CANCELLED';
-
--- 3 · the booking, 4 · the tickets, 5 · the payment
-INSERT INTO booking (pnr, passenger_id)                  VALUES (...);
-INSERT INTO ticket  (ticket_no, booking_id, flight_id,
-                     passenger_id, seat_id, cabin, fare_paid) VALUES (...);
-INSERT INTO payment (booking_id, txn_ref, amount, method)  VALUES (...);
-
-COMMIT;   -- all five, or none of them
-
--- and behind all of it, the backstop that holds even without the lock:
---   CREATE UNIQUE INDEX uq_ticket_seat_per_flight
---       ON ticket (flight_id, seat_id) WHERE seat_id IS NOT NULL;</pre>
-  </details>
 </section>
 {% endblock %}

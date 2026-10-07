@@ -107,29 +107,6 @@
       </div>
       {% endfor %}
     </div>
-
-    <details class="sqlbox">
-      <summary>The query behind these results</summary>
-      <pre>-- cabin_free is a correlated subquery: seats on this airframe, in this
--- cabin, with no live ticket against them for this flight.
-SELECT f.flight_no, f.sched_dep, f.base_fare, av.seats_free,
-       (SELECT count(*) FROM seat s
-         WHERE s.aircraft_id = f.aircraft_id
-           AND s.cabin = '{{ cabin }}'
-           AND NOT EXISTS (SELECT 1 FROM ticket t
-                            WHERE t.seat_id   = s.seat_id
-                              AND t.flight_id = f.flight_id
-                              AND t.status   &lt;&gt; 'CANCELLED')) AS cabin_free
-  FROM flight f
-  JOIN route   r ON r.route_id   = f.route_id
-  JOIN airport o ON o.airport_id = r.origin_id
-  JOIN airport d ON d.airport_id = r.dest_id
-  JOIN v_seat_availability av ON av.flight_id = f.flight_id
- WHERE o.iata_code = '{{ origin }}' AND d.iata_code = '{{ dest }}'
-   AND f.dep_date = '{{ when }}'
-   AND f.status IN ('SCHEDULED', 'DELAYED')
- ORDER BY f.sched_dep;</pre>
-    </details>
   {% endif %}
 </section>
 {% endblock %}

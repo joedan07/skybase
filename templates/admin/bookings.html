@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}Bookings · SkyBase Ops{% endblock %}
+
+{% block body %}
+<section class="wrap" style="padding-top:28px">
+  <div class="adm-head">
+    <div>
+      <span class="tag tag--beacon">Operations control</span>
+      <h1 style="margin-top:6px">All bookings</h1>
+      <p class="lede">Every PNR in the database, newest first.</p>
+    </div>
+  </div>
+
+  <div class="kpis" style="margin-bottom:22px">
+    <div class="kpi"><span>Bookings</span><b>{{ summary.bookings }}</b><em>all time</em></div>
+    <div class="kpi"><span>Live tickets</span><b>{{ summary.live_tickets }}</b><em>not cancelled</em></div>
+    <div class="kpi"><span>Cancelled</span><b>{{ summary.cancelled }}</b><em>PNRs voided</em></div>
+    <div class="kpi"><span>Net revenue</span><b>₹{{ summary.net|rupees }}</b><em>payments less refunds</em></div>
+  </div>
+
+  <form class="slip" method="get" style="margin-bottom:20px">
+    <div class="slip__body" style="padding:16px 18px">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+        <label class="field" style="margin:0;flex:1;min-width:240px">
+          <span>Search</span>
+          <input class="input" name="q" value="{{ q }}" autofocus
+                 placeholder="PNR, name, email, ticket no or flight no">
+        </label>
+        <label class="field field--mono" style="margin:0;min-width:160px">
+          <span>Status</span>
+          <select class="input" name="status">
+            <option value="">All</option>
+            <option value="CONFIRMED" {{ 'selected' if status == 'CONFIRMED' }}>Confirmed</option>
+            <option value="CANCELLED" {{ 'selected' if status == 'CANCELLED' }}>Cancelled</option>
+          </select>
+        </label>
+        <div class="field" style="margin:0"><button class="btn">Search</button></div>
+        {% if q or status %}
+        <div class="field" style="margin:0">
+          <a class="btn btn--ghost" href="{{ url_for('admin_bookings') }}">Clear</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </form>
+
+  {% if not rows %}
+    <div class="empty">
+      <b>Nothing matches</b>
+      {% if q %}No booking mentions “{{ q }}”.{% else %}No bookings yet.{% endif %}
+    </div>
+  {% else %}
+
+  <p class="tag" style="margin-bottom:10px">
+    {{ total }} booking{{ '' if total == 1 else 's' }}{% if q or status %} matching{% endif %}
+    · showing {{ rows|length }}
+  </p>
+
+  <div class="tw">
+    <table>
+      <thead>
+        <tr><th>PNR</th><th>Passenger</th><th>Flights</th><th>Departs</th>
+            <th class="num">Pax</th><th class="num">Value</th><th class="num">Paid</th>
+            <th>Status</th><th>Booked</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for b in rows %}
+        <tr>
+          <td><b class="mono" style="letter-spacing:.1em;font-size:15px">{{ b.pnr }}</b></td>
+          <td>
+            <b>{{ b.full_name }}</b><br>
+            <span class="muted small mono">{{ b.email }}{% if b.phone %} · {{ b.phone }}{% endif %}</span>
+          </td>
+          <td class="mono">{{ b.flights or '—' }}</td>
+          <td>
+            {% if b.departs %}{{ b.departs|daymon }}
+              <span class="muted mono small">{{ b.departs|hhmm }}</span>
+            {% else %}—{% endif %}
+          </td>
+          <td class="num">{{ b.pax }}</td>
+          <td class="num">₹{{ b.value|rupees }}</td>
+          <td class="num">
+            {% if b.paid < 0 %}<span style="color:var(--beacon)">₹{{ b.paid|rupees }}</span>
+            {% else %}₹{{ b.paid|rupees }}{% endif %}
+          </td>
+          <td>
+            {% if b.status == 'CANCELLED' %}<span class="pill pill--beacon">Cancelled</span>
+            {% else %}<span class="pill pill--threshold">Confirmed</span>{% endif %}
+          </td>
+          <td class="mono small muted">{{ b.booked_at.strftime('%d %b %H:%M') }}</td>
+          <td><a class="btn btn--ghost btn--sm" href="{{ url_for('boarding_pass', pnr=b.pnr) }}">Open</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if pages > 1 %}
+  <div class="stack" style="margin-top:16px;justify-content:center">
+    {% if page > 1 %}
+      <a class="btn btn--ghost btn--sm"
+         href="{{ url_for('admin_bookings', q=q, status=status, page=page-1) }}">‹ Previous</a>
+    {% endif %}
+    <span class="tag">Page {{ page }} of {{ pages }}</span>
+    {% if page < pages %}
+      <a class="btn btn--ghost btn--sm"
+         href="{{ url_for('admin_bookings', q=q, status=status, page=page+1) }}">Next ›</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <details class="sqlbox">
+    <summary>The query behind this list</summary>
+    <pre>-- One search box over five columns, so an agent can type whatever the
+-- passenger happens to remember. ILIKE is case-insensitive; the EXISTS
+-- reaches into the booking's tickets without multiplying the rows.
+SELECT b.pnr, b.booked_at, b.status, p.full_name, p.email,
+       count(t.ticket_id) FILTER (WHERE t.status &lt;&gt; 'CANCELLED') AS pax,
+       sum(t.fare_paid)   FILTER (WHERE t.status &lt;&gt; 'CANCELLED') AS value,
+       (SELECT sum(amount) FROM payment
+         WHERE booking_id = b.booking_id)                        AS paid,
+       string_agg(DISTINCT f.flight_no, ' ')                     AS flights
+  FROM booking b
+  JOIN passenger p ON p.passenger_id = b.passenger_id
+  LEFT JOIN ticket t ON t.booking_id = b.booking_id
+  LEFT JOIN flight f ON f.flight_id  = t.flight_id
+ WHERE b.pnr ILIKE %s OR p.full_name ILIKE %s OR p.email ILIKE %s
+    OR EXISTS (SELECT 1 FROM ticket t2 JOIN flight f2 USING (flight_id)
+                WHERE t2.booking_id = b.booking_id
+                  AND (t2.ticket_no ILIKE %s OR f2.flight_no ILIKE %s))
+ GROUP BY b.booking_id, p.full_name, p.email
+ ORDER BY b.booked_at DESC
+ LIMIT 25 OFFSET %s;
+
+-- value is what the live tickets are worth; paid is the payment ledger,
+-- which nets refunds off. They differ exactly when something was cancelled.</pre>
+  </details>
+  {% endif %}
+</section>
+{% endblock %}

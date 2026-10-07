@@ -43,26 +43,6 @@
       </tbody>
     </table>
   </div>
-
-  <details class="sqlbox">
-    <summary>The query behind this list</summary>
-    <pre>-- string_agg collapses the legs of a multi-flight PNR into one cell;
--- the FILTER keeps cancelled tickets out of the total without a subquery.
-SELECT b.pnr, b.booked_at, b.status,
-       count(t.ticket_id)  AS pax,
-       min(f.sched_dep)    AS departs,
-       string_agg(DISTINCT o.iata_code || '&rarr;' || d.iata_code, ', ') AS legs,
-       COALESCE(sum(t.fare_paid) FILTER (WHERE t.status &lt;&gt; 'CANCELLED'), 0) AS total
-  FROM booking b
-  LEFT JOIN ticket  t ON t.booking_id = b.booking_id
-  LEFT JOIN flight  f ON f.flight_id  = t.flight_id
-  LEFT JOIN route   r ON r.route_id   = f.route_id
-  LEFT JOIN airport o ON o.airport_id = r.origin_id
-  LEFT JOIN airport d ON d.airport_id = r.dest_id
- WHERE b.passenger_id = %s
- GROUP BY b.booking_id
- ORDER BY b.booked_at DESC;</pre>
-  </details>
   {% endif %}
 </section>
 {% endblock %}

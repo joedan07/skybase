@@ -166,7 +166,7 @@ booking view compares `passenger_id` against the session and returns 403.
 |---|---|---|
 | Search, book, seat map | ✓ | ✓ |
 | Own bookings, check-in, cancel | ✓ | ✓ |
-| All bookings, manifests, reports | | ✓ |
+| All bookings (searchable), manifests, reports | | ✓ |
 | Create flights, set status | | ✓ |
 | Concurrency lab, live schema | | ✓ |
 
@@ -183,7 +183,7 @@ sql/seed.sql        the fixed reference data and the flight schedule
 templates/          Jinja — customer pages and admin/
 static/css/app.css  the design language, hand-written
 static/js/app.js    five behaviours, no framework
-docs/               Review 1 deliverables + the ER diagram
+docs/               Review 1 deliverables, the ER diagram, TECH_STACK.md
 ```
 
 ## Deployment
