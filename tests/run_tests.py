@@ -209,7 +209,7 @@ ok = (all(t["status"] == "CANCELLED" and t["seat_id"] is None for t in tks)
       and rf and abs(float(rf["amount"]) + paid * 0.9) < 0.01)
 record("TC-11", "Cancellation (controlled removal)", "Cancel the booking more than 24 h before departure",
        "Tickets CANCELLED, seats released (seat_id NULL), refund of 90% written as a negative payment",
-       f"{len(tks)} tickets CANCELLED, seat_id NULL; refund row ₹{rf['amount']:,.0f} ({rf['method']}) on ₹{paid:,.0f}", ok)
+       f"{len(tks)} tickets CANCELLED, seat_id NULL; refund row −₹{abs(rf['amount']):,.0f} ({rf['method']}) on ₹{paid:,.0f}", ok)
 
 # ── TC-12 cancel again ─────────────────────────────────────────────────────
 p_before = n("SELECT count(*) FROM payment WHERE booking_id=%s", (BOOKING_ID,))

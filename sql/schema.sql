@@ -1,45 +1,49 @@
--- ============================================================================
---  SKYBASE  ·  Airline Reservation & Flight Operations
---  DBMS Project-Based Learning · Project 18 · Review 2 DDL
+-- ====================================================================
+--  SKYBASE: Airline Reservation & Flight Operations DBMS Project-Based
+--  Learning, Project 18, Review 2 DDL
 --
---  PostgreSQL 15+.  Nine relations, all in 3NF (and in BCNF: in every relation
---  each determinant is a candidate key).  Reduced from the nineteen-relation
---  Review 1 model on the reviewer's instruction to keep the ER diagram small:
---  single carrier, three fixed airports, six fixed routes, three fixed aircraft.
+--  PostgreSQL 15+. Nine relations, all in 3NF (and in BCNF: in every
+--  relation each determinant is a candidate key). Reduced from the
+--  nineteen-relation Review 1 model on the reviewer's instruction to
+--  keep the ER diagram small: single carrier, three fixed airports, six
+--  fixed routes, three fixed aircraft.
 --
 --  What was folded in, and why it is still 3NF:
---    AIRCRAFT_TYPE  -> gone.  `aircraft.model` is determined by tail_number,
---                      which is a candidate key, so no transitive dependency.
---                      Capacity is NOT stored; it is COUNT(seat), so there is
---                      no model -> capacity dependency to violate.
---    CABIN_CLASS    -> `cabin` domain column on seat and ticket.  Its only
---                      former attribute (fare multiplier) is a business
---                      constant, not data about a cabin.
---    FARE           -> `flight.base_fare` is the current price; the price
---                      actually charged is frozen into `ticket.fare_paid`, so
---                      repricing a flight can never rewrite settled history.
---    CHECK_IN       -> `ticket.checked_in_at` (nullable).  A 1:1 optional
---                      relation with one attribute does not earn a relation.
---    CANCELLATION   -> `ticket.status` + a negative-signed `payment` row, so
---                      the money trail stays append-only.
---    BOOKING.total  -> not stored.  Derived as SUM(ticket.fare_paid).
---    RBAC tables    -> `passenger.role`.  Two roles, not seven.
 --
---  Deliberate simplification, stated rather than hidden: `passenger` is both
---  the login account and the traveller.  At this scale splitting ACCOUNT from
---  PASSENGER would add a relation that carries no attribute of its own.
+--    AIRCRAFT_TYPE -> gone. aircraft.model is determined by
+--      tail_number, a candidate key, so there is no transitive
+--      dependency. Capacity is NOT stored: it is COUNT(seat), so there
+--      is no model -> capacity dependency to violate.
+--    CABIN_CLASS   -> a cabin column on seat and ticket. Its only
+--      attribute (a fare multiplier) is a business constant, not data
+--      about a cabin.
+--    FARE          -> flight.base_fare is the current price; the
+--      price charged is frozen into ticket.fare_paid, so repricing a
+--      flight can never rewrite settled history.
+--    CHECK_IN      -> ticket.checked_in_at (nullable). A 1:1 optional
+--      relation with one attribute does not earn a relation.
+--    CANCELLATION  -> ticket.status plus a negative payment row, so
+--      the money trail stays append-only.
+--    BOOKING.total -> not stored; derived as SUM(ticket.fare_paid).
+--    RBAC tables   -> passenger.role. Two roles, not seven.
+--
+--  Deliberate simplification, stated rather than hidden: passenger is
+--  both the login account and the traveller. At this scale, splitting
+--  ACCOUNT from PASSENGER would add a relation that carries no
+--  attribute of its own.
 --
 --  Run:  psql "$DATABASE_URL" -f sql/schema.sql
--- ============================================================================
+-- ====================================================================
 
 BEGIN;
 
-DROP VIEW  IF EXISTS v_revenue_daily, v_route_demand, v_flight_occupancy,
+DROP VIEW  IF EXISTS v_revenue_daily, v_route_demand,
+        v_flight_occupancy,
                      v_flight_manifest, v_seat_availability CASCADE;
 DROP TABLE IF EXISTS payment, ticket, booking, passenger,
                      seat, flight, aircraft, route, airport CASCADE;
 
--- ─────────────────────────────────────────────────────────── fixed reference
+-- ───────────────────────────────────────────────────── fixed reference
 
 -- Three airports, seeded once and never edited by the application.
 CREATE TABLE airport (
@@ -50,11 +54,13 @@ CREATE TABLE airport (
     tz_offset_min  SMALLINT      NOT NULL DEFAULT 330,
 
     CONSTRAINT chk_airport_iata CHECK (iata_code ~ '^[A-Z]{3}$'),
-    CONSTRAINT chk_airport_tz   CHECK (tz_offset_min BETWEEN -720 AND 840)
+    CONSTRAINT chk_airport_tz
+            CHECK (tz_offset_min BETWEEN -720 AND 840)
 );
 
--- The directed pairs we actually fly.  UNIQUE(origin,dest) makes the pair the
--- alternate key; the CHECK forbids a route from an airport to itself.
+-- The directed pairs we actually fly.  UNIQUE(origin,dest) makes the
+-- pair the alternate key; the CHECK forbids a route from an airport to
+-- itself.
 CREATE TABLE route (
     route_id     SMALLINT      PRIMARY KEY,
     origin_id    SMALLINT      NOT NULL REFERENCES airport(airport_id),
@@ -68,8 +74,9 @@ CREATE TABLE route (
     CONSTRAINT chk_route_block  CHECK (block_min BETWEEN 30 AND 600)
 );
 
--- Single carrier, so there is no AIRLINE relation: every airframe is ours.
--- Capacity is deliberately absent — it is COUNT(seat) for this aircraft.
+-- Single carrier, so there is no AIRLINE relation: every airframe is
+-- ours. Capacity is deliberately absent — it is COUNT(seat) for this
+-- aircraft.
 CREATE TABLE aircraft (
     aircraft_id  SMALLINT      PRIMARY KEY,
     tail_number  VARCHAR(10)   NOT NULL UNIQUE,
@@ -79,11 +86,14 @@ CREATE TABLE aircraft (
     CONSTRAINT chk_aircraft_tail CHECK (tail_number ~ '^VT-[A-Z]{3}$')
 );
 
--- The seat map belongs to the airframe.  One row per physical seat position,
--- defined once and reused by every flight that airframe operates.
+-- The seat map belongs to the airframe.  One row per physical seat
+-- position, defined once and reused by every flight that airframe
+-- operates.
 CREATE TABLE seat (
-    seat_id      INTEGER       GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
-    aircraft_id  SMALLINT      NOT NULL REFERENCES aircraft(aircraft_id) ON DELETE CASCADE,
+    seat_id      INTEGER       GENERATED BY DEFAULT AS IDENTITY
+            PRIMARY KEY,
+    aircraft_id  SMALLINT      NOT NULL
+            REFERENCES aircraft(aircraft_id) ON DELETE CASCADE,
     seat_no      VARCHAR(4)    NOT NULL,
     cabin        VARCHAR(8)    NOT NULL DEFAULT 'ECONOMY',
     is_exit_row  BOOLEAN       NOT NULL DEFAULT FALSE,
@@ -93,22 +103,25 @@ CREATE TABLE seat (
     CONSTRAINT chk_seat_cabin CHECK (cabin IN ('ECONOMY', 'BUSINESS'))
 );
 
--- ──────────────────────────────────────────────────────── operational data
+-- ──────────────────────────────────────────────────── operational data
 
--- One dated operation of a route by an airframe.
--- dep_date is a GENERATED column, so the "one flight number per day" rule is
--- enforced on a value that cannot drift out of step with sched_dep.
+-- One dated operation of a route by an airframe. dep_date is a
+-- GENERATED column, so the "one flight number per day" rule is enforced
+-- on a value that cannot drift out of step with sched_dep.
 CREATE TABLE flight (
-    flight_id    INTEGER       GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    flight_id    INTEGER       GENERATED BY DEFAULT AS IDENTITY
+            PRIMARY KEY,
     flight_no    VARCHAR(6)    NOT NULL,
     route_id     SMALLINT      NOT NULL REFERENCES route(route_id),
-    aircraft_id  SMALLINT      NOT NULL REFERENCES aircraft(aircraft_id),
+    aircraft_id  SMALLINT      NOT NULL
+            REFERENCES aircraft(aircraft_id),
     sched_dep    TIMESTAMP     NOT NULL,
     sched_arr    TIMESTAMP     NOT NULL,
     base_fare    NUMERIC(8,2)  NOT NULL,
     gate         VARCHAR(4),
     status       VARCHAR(10)   NOT NULL DEFAULT 'SCHEDULED',
-    dep_date     DATE          GENERATED ALWAYS AS (sched_dep::date) STORED,
+    dep_date     DATE
+            GENERATED ALWAYS AS (sched_dep::date) STORED,
 
     CONSTRAINT uq_flight_no_date  UNIQUE (flight_no, dep_date),
     CONSTRAINT chk_flight_no      CHECK (flight_no ~ '^SB[0-9]{3,4}$'),
@@ -120,7 +133,8 @@ CREATE TABLE flight (
 
 -- Login account and traveller in one relation (see header note).
 CREATE TABLE passenger (
-    passenger_id   INTEGER      GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    passenger_id   INTEGER      GENERATED BY DEFAULT AS IDENTITY
+            PRIMARY KEY,
     email          VARCHAR(120) NOT NULL UNIQUE,
     password_hash  VARCHAR(255) NOT NULL,
     full_name      VARCHAR(80)  NOT NULL,
@@ -128,8 +142,11 @@ CREATE TABLE passenger (
     role           VARCHAR(8)   NOT NULL DEFAULT 'CUSTOMER',
     created_at     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT chk_pax_email CHECK (email ~ '^[^@[:space:]]+@[^@[:space:]]+\.[a-z]{2,}$'),
-    CONSTRAINT chk_pax_phone CHECK (phone IS NULL OR phone ~ '^[0-9]{10}$'),
+    CONSTRAINT chk_pax_email
+            CHECK (email ~
+            '^[^@[:space:]]+@[^@[:space:]]+\.[a-z]{2,}$'),
+    CONSTRAINT chk_pax_phone
+            CHECK (phone IS NULL OR phone ~ '^[0-9]{10}$'),
     CONSTRAINT chk_pax_role  CHECK (role IN ('CUSTOMER', 'ADMIN')),
     CONSTRAINT chk_pax_name  CHECK (length(btrim(full_name)) >= 2)
 );
@@ -137,31 +154,38 @@ CREATE TABLE passenger (
 -- The commercial container: one PNR, one account holder, many tickets.
 -- total_amount is NOT stored — it is SUM(ticket.fare_paid).
 CREATE TABLE booking (
-    booking_id    INTEGER      GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    booking_id    INTEGER      GENERATED BY DEFAULT AS IDENTITY
+            PRIMARY KEY,
     pnr           CHAR(6)      NOT NULL UNIQUE,
-    passenger_id  INTEGER      NOT NULL REFERENCES passenger(passenger_id),
+    passenger_id  INTEGER      NOT NULL
+            REFERENCES passenger(passenger_id),
     booked_at     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     status        VARCHAR(10)  NOT NULL DEFAULT 'CONFIRMED',
 
     CONSTRAINT chk_booking_pnr    CHECK (pnr ~ '^[A-Z0-9]{6}$'),
-    CONSTRAINT chk_booking_status CHECK (status IN ('CONFIRMED', 'CANCELLED'))
+    CONSTRAINT chk_booking_status
+            CHECK (status IN ('CONFIRMED', 'CANCELLED'))
 );
 
--- ─────────────────────────────────────────────── the associative hub: TICKET
+-- ───────────────────────────────────────── the associative hub: TICKET
 --
--- One passenger, on one flight, in one seat, at one frozen fare.  This is the
--- relation that resolves the many-to-many between BOOKING, PASSENGER and
--- FLIGHT, and the row on which almost every business rule lands.
+-- One passenger, on one flight, in one seat, at one frozen fare.  This
+-- is the relation that resolves the many-to-many between BOOKING,
+-- PASSENGER and FLIGHT, and the row on which almost every business rule
+-- lands.
 --
--- seat_id is nullable on purpose: cancelling a ticket releases its seat by
--- setting it to NULL, which is what lets the partial unique index below hold
--- without blocking the seat forever.
+-- seat_id is nullable on purpose: cancelling a ticket releases its seat
+-- by setting it to NULL, which is what lets the partial unique index
+-- below hold without blocking the seat forever.
 CREATE TABLE ticket (
-    ticket_id      INTEGER      GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    ticket_id      INTEGER      GENERATED BY DEFAULT AS IDENTITY
+            PRIMARY KEY,
     ticket_no      CHAR(13)     NOT NULL UNIQUE,
-    booking_id     INTEGER      NOT NULL REFERENCES booking(booking_id) ON DELETE CASCADE,
+    booking_id     INTEGER      NOT NULL REFERENCES booking(booking_id)
+            ON DELETE CASCADE,
     flight_id      INTEGER      NOT NULL REFERENCES flight(flight_id),
-    passenger_id   INTEGER      NOT NULL REFERENCES passenger(passenger_id),
+    passenger_id   INTEGER      NOT NULL
+            REFERENCES passenger(passenger_id),
     seat_id        INTEGER               REFERENCES seat(seat_id),
     cabin          VARCHAR(8)   NOT NULL,
     fare_paid      NUMERIC(8,2) NOT NULL,
@@ -169,10 +193,13 @@ CREATE TABLE ticket (
     checked_in_at  TIMESTAMP,
 
     CONSTRAINT chk_ticket_no     CHECK (ticket_no ~ '^SB-[0-9]{10}$'),
-    CONSTRAINT chk_ticket_cabin  CHECK (cabin IN ('ECONOMY', 'BUSINESS')),
+    CONSTRAINT chk_ticket_cabin
+            CHECK (cabin IN ('ECONOMY', 'BUSINESS')),
     CONSTRAINT chk_ticket_fare   CHECK (fare_paid >= 0),
-    CONSTRAINT chk_ticket_status CHECK (status IN ('CONFIRMED', 'CHECKED_IN', 'CANCELLED')),
-    -- A cancelled ticket must not keep a seat; a live one must have one.
+    CONSTRAINT chk_ticket_status
+            CHECK (status IN ('CONFIRMED', 'CHECKED_IN', 'CANCELLED')),
+    -- A cancelled ticket must not keep a seat; a live one must have
+    -- one.
     CONSTRAINT chk_ticket_seat_release CHECK (
         (status = 'CANCELLED' AND seat_id IS NULL) OR
         (status <> 'CANCELLED' AND seat_id IS NOT NULL)),
@@ -182,12 +209,13 @@ CREATE TABLE ticket (
         (status <> 'CHECKED_IN' AND checked_in_at IS NULL))
 );
 
--- ███ R2 — THE RULE THIS WHOLE PROJECT EXISTS TO GUARANTEE ███
--- One passenger per seat per flight.  A PARTIAL unique index: it applies only
--- to tickets that still hold a seat, so a cancelled ticket frees 14A for the
--- next passenger while two live tickets can never share it.  This is the
--- backstop behind the row lock in sp_book_seat / book_seat() — it holds even
--- if a future code path forgets to take the lock.
+-- *** R2 — THE RULE THIS WHOLE PROJECT EXISTS TO GUARANTEE *** One
+-- passenger per seat per flight.  A PARTIAL unique index: it applies
+-- only to tickets that still hold a seat, so a cancelled ticket frees
+-- 14A for the next passenger while two live tickets can never share it.
+-- This is the backstop behind the row lock in sp_book_seat /
+-- book_seat() — it holds even if a future code path forgets to take the
+-- lock.
 CREATE UNIQUE INDEX uq_ticket_seat_per_flight
     ON ticket (flight_id, seat_id)
     WHERE seat_id IS NOT NULL;
@@ -195,48 +223,58 @@ CREATE UNIQUE INDEX uq_ticket_seat_per_flight
 -- A note on the rule that is deliberately NOT here.
 --
 -- Review 1 listed "R1 · one seat per passenger per flight" as
--- UNIQUE(flight_id, passenger_id).  It is absent on purpose.  Because this
--- model merges the login account and the traveller into one PASSENGER
--- relation, one account legitimately holds several seats on a single flight
--- when somebody books for their family.  Enforcing R1 here would reject that
--- perfectly valid booking.
+-- UNIQUE(flight_id, passenger_id).  It is absent on purpose.  Because
+-- this model merges the login account and the traveller into one
+-- PASSENGER relation, one account legitimately holds several seats on a
+-- single flight when somebody books for their family.  Enforcing R1
+-- here would reject that perfectly valid booking.
 --
--- The rule that actually matters — no two live tickets on the same seat — is
--- the index above, and it is untouched.  Seats per booking are capped in the
--- application instead, which is the right place for a policy limit as opposed
--- to a correctness invariant.
+-- The rule that actually matters — no two live tickets on the same seat
+-- — is the index above, and it is untouched.  Seats per booking are
+-- capped in the application instead, which is the right place for a
+-- policy limit as opposed to a correctness invariant.
 
 -- Money is append-only: a refund is a negative row, never an edit.
 -- UNIQUE(txn_ref) is what makes a retried payment callback idempotent.
 CREATE TABLE payment (
-    payment_id  INTEGER      GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
-    booking_id  INTEGER      NOT NULL REFERENCES booking(booking_id) ON DELETE CASCADE,
+    payment_id  INTEGER      GENERATED BY DEFAULT AS IDENTITY
+            PRIMARY KEY,
+    booking_id  INTEGER      NOT NULL REFERENCES booking(booking_id)
+            ON DELETE CASCADE,
     txn_ref     VARCHAR(24)  NOT NULL UNIQUE,
     amount      NUMERIC(9,2) NOT NULL,
     method      VARCHAR(12)  NOT NULL,
     paid_at     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT chk_pay_nonzero CHECK (amount <> 0),
-    CONSTRAINT chk_pay_method  CHECK (method IN ('CARD', 'UPI', 'NETBANKING', 'REFUND'))
+    CONSTRAINT chk_pay_method
+            CHECK (method IN ('CARD', 'UPI', 'NETBANKING', 'REFUND'))
 );
 
--- ──────────────────────────────────────────────────────────────── indexes
+-- ───────────────────────────────────────────────────────────── indexes
 -- Only on attributes the application actually searches on.
 
-CREATE INDEX idx_flight_route_dep ON flight (route_id, sched_dep);  -- flight search
-CREATE INDEX idx_flight_dep_date  ON flight (dep_date);             -- day's ops board
-CREATE INDEX idx_ticket_flight    ON ticket (flight_id);            -- manifest, occupancy
-CREATE INDEX idx_ticket_booking   ON ticket (booking_id);           -- PNR lookup
-CREATE INDEX idx_booking_pax      ON booking (passenger_id);        -- "my trips"
-CREATE INDEX idx_payment_booking  ON payment (booking_id);          -- settlement
+-- flight search
+CREATE INDEX idx_flight_route_dep ON flight (route_id, sched_dep);
+-- day's ops board
+CREATE INDEX idx_flight_dep_date  ON flight (dep_date);
+-- manifest, occupancy
+CREATE INDEX idx_ticket_flight    ON ticket (flight_id);
+-- PNR lookup
+CREATE INDEX idx_ticket_booking   ON ticket (booking_id);
+-- "my trips"
+CREATE INDEX idx_booking_pax      ON booking (passenger_id);
+-- settlement
+CREATE INDEX idx_payment_booking  ON payment (booking_id);
 
--- ─────────────────────────────────────────────────────────────── triggers
--- Three rules that no CHECK constraint can express, because each one reads
--- another row or another relation.
+-- ──────────────────────────────────────────────────────────── triggers
+-- Three rules that no CHECK constraint can express, because each one
+-- reads another row or another relation.
 
 -- R4 · A seat must exist on the airframe actually operating the flight.
 --      You cannot put a passenger in 17F on a 28-seat ATR.
-CREATE OR REPLACE FUNCTION trg_seat_matches_aircraft() RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION trg_seat_matches_aircraft() RETURNS TRIGGER
+        AS $$
 DECLARE
     v_flight_ac SMALLINT;
     v_seat_ac   SMALLINT;
@@ -244,8 +282,10 @@ BEGIN
     IF NEW.seat_id IS NULL THEN
         RETURN NEW;
     END IF;
-    SELECT aircraft_id INTO v_flight_ac FROM flight WHERE flight_id = NEW.flight_id;
-    SELECT aircraft_id INTO v_seat_ac   FROM seat   WHERE seat_id   = NEW.seat_id;
+    SELECT aircraft_id INTO v_flight_ac FROM flight WHERE flight_id =
+            NEW.flight_id;
+    SELECT aircraft_id INTO v_seat_ac   FROM seat   WHERE seat_id   =
+            NEW.seat_id;
     IF v_flight_ac <> v_seat_ac THEN
         RAISE EXCEPTION
             'seat % does not exist on the aircraft operating flight %',
@@ -260,9 +300,11 @@ CREATE TRIGGER ticket_seat_matches_aircraft
     BEFORE INSERT OR UPDATE OF seat_id, flight_id ON ticket
     FOR EACH ROW EXECUTE FUNCTION trg_seat_matches_aircraft();
 
--- R3 · Aircraft-capacity limit.  Live tickets on a flight may not exceed the
---      number of seats on its airframe.  An aggregate over two relations, so
---      it cannot be a CHECK.  Tested at exactly N and N+1.
+-- R3 · Aircraft-capacity limit.  Live tickets on a flight may not
+-- exceed the
+--      number of seats on its airframe.  An aggregate over two
+--      relations, so it cannot be a CHECK.  Tested at exactly N and
+--      N+1.
 CREATE OR REPLACE FUNCTION trg_flight_capacity() RETURNS TRIGGER AS $$
 DECLARE
     v_capacity INTEGER;
@@ -293,7 +335,8 @@ CREATE TRIGGER ticket_capacity
     FOR EACH ROW WHEN (NEW.status <> 'CANCELLED')
     EXECUTE FUNCTION trg_flight_capacity();
 
--- R7 · A ticket may not be sold on a flight that has already departed or been
+-- R7 · A ticket may not be sold on a flight that has already departed
+-- or been
 --      cancelled.  Reads FLIGHT, so again not a CHECK.
 CREATE OR REPLACE FUNCTION trg_flight_sellable() RETURNS TRIGGER AS $$
 DECLARE
@@ -304,7 +347,8 @@ BEGIN
       FROM flight WHERE flight_id = NEW.flight_id;
 
     IF v_status IN ('DEPARTED', 'ARRIVED', 'CANCELLED') THEN
-        RAISE EXCEPTION 'flight % is % and cannot be sold', NEW.flight_id, v_status
+        RAISE EXCEPTION 'flight % is % and cannot be sold',
+                NEW.flight_id, v_status
             USING ERRCODE = 'check_violation';
     END IF;
     RETURN NEW;
@@ -315,16 +359,20 @@ CREATE TRIGGER ticket_flight_sellable
     BEFORE INSERT ON ticket
     FOR EACH ROW EXECUTE FUNCTION trg_flight_sellable();
 
--- ────────────────────────────────────────────────────────── report views
--- The reports promised at Review 1, each exercising a different SQL construct.
+-- ──────────────────────────────────────────────────────── report views
+-- The reports promised at Review 1, each exercising a different SQL
+-- construct.
 
--- Used by flight search as well as the admin board.
--- Capacity is COUNT(seat); that is why no capacity column exists anywhere.
+-- Used by flight search as well as the admin board. Capacity is
+-- COUNT(seat); that is why no capacity column exists anywhere.
 CREATE VIEW v_seat_availability AS
 SELECT f.flight_id,
-       count(s.seat_id)                                      AS capacity,
-       count(s.seat_id) FILTER (WHERE t.ticket_id IS NULL)    AS seats_free,
-       count(t.ticket_id)                                     AS seats_sold
+       count(s.seat_id)                                      AS
+               capacity,
+       count(s.seat_id) FILTER (WHERE t.ticket_id IS NULL)    AS
+               seats_free,
+       count(t.ticket_id)                                     AS
+               seats_sold
   FROM flight f
   JOIN seat   s ON s.aircraft_id = f.aircraft_id
   LEFT JOIN ticket t ON t.seat_id = s.seat_id
@@ -370,7 +418,8 @@ SELECT f.flight_id,
        a.model,
        av.capacity,
        av.seats_sold,
-       ROUND(100.0 * av.seats_sold / NULLIF(av.capacity, 0), 1) AS load_factor_pct,
+       ROUND(100.0 * av.seats_sold / NULLIF(av.capacity, 0), 1) AS
+               load_factor_pct,
        COALESCE(rev.gross, 0) AS gross_revenue
   FROM flight f
   JOIN route    r  ON r.route_id   = f.route_id
@@ -389,18 +438,23 @@ SELECT r.route_id,
        o.city AS from_city,
        d.city AS to_city,
        r.distance_km,
-       count(DISTINCT f.flight_id)                          AS flights_operated,
-       count(t.ticket_id)                                   AS passengers,
+       count(DISTINCT f.flight_id)                          AS
+               flights_operated,
+       count(t.ticket_id)                                   AS
+               passengers,
        COALESCE(sum(t.fare_paid), 0)                        AS revenue,
        ROUND(COALESCE(avg(t.fare_paid), 0), 2)              AS avg_fare
   FROM route    r
   JOIN airport  o ON o.airport_id = r.origin_id
   JOIN airport  d ON d.airport_id = r.dest_id
   LEFT JOIN flight f ON f.route_id = r.route_id
-  LEFT JOIN ticket t ON t.flight_id = f.flight_id AND t.status <> 'CANCELLED'
- GROUP BY r.route_id, o.iata_code, d.iata_code, o.city, d.city, r.distance_km;
+  LEFT JOIN ticket t ON t.flight_id = f.flight_id AND t.status <>
+          'CANCELLED'
+ GROUP BY r.route_id, o.iata_code, d.iata_code, o.city, d.city,
+         r.distance_km;
 
--- R-04 Revenue — gross, refunds and net per day, from the payment ledger.
+-- R-04 Revenue — gross, refunds and net per day, from the payment
+-- ledger.
 CREATE VIEW v_revenue_daily AS
 SELECT paid_at::date                                        AS day,
        sum(amount) FILTER (WHERE amount > 0)                AS gross,
