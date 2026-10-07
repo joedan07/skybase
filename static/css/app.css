@@ -381,7 +381,7 @@ em {
 
 /* --------------------------------------------------------------- the hero */
 
-.hero { padding: 48px 0 32px; }
+.hero { padding: 40px 0 46px; position: relative; }
 
 .hero__kicker { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
 .hero__kicker::before {
@@ -411,23 +411,41 @@ em {
    place; the dot is the one lit element, pulsing like a beacon. */
 .title {
   font-family: var(--f-display); font-weight: 800;
-  font-size: clamp(74px, 20vw, 232px);
-  line-height: .84; letter-spacing: -.055em;
-  display: flex; align-items: baseline;
+  font-size: clamp(44px, 13.4vw, 172px);
+  line-height: .86; letter-spacing: -.055em;
   margin-bottom: clamp(18px, 2.6vw, 30px);
+  /* inline-block so the box shrinks to its widest line. That is what gives
+     the second line the FIRST line's width to hang its right edge from; as a
+     block it filled the container and BOARD. overshot by ~185px. */
+  display: inline-block;
+  max-width: 100%;
 }
+
+.title__line { display: flex; align-items: baseline; }
+
+/* FIND. BOOK. / BOARD. — the second line hangs right, so the three full
+   stops step down and across instead of stacking flush left. */
+.title__line--2 { justify-content: flex-end; }
+
+.title__gap { width: .26em; flex: none; }
 .title .ch {
   display: inline-block; opacity: 0;
   transform: translateY(110%) rotate(7deg);
   animation: rise .9s cubic-bezier(.2, .9, .2, 1.05) forwards;
   animation-delay: calc(var(--i) * 68ms + 140ms);
 }
+/* Each full stop is a lit beacon. They pop in behind their own word, so the
+   three read as a sequence rather than arriving together. */
 .title .dotmark {
-  display: inline-block; width: .17em; height: .17em; margin-left: .05em;
-  border-radius: 50%; background: var(--sodium);
+  display: inline-block; width: .16em; height: .16em; margin-left: .05em;
+  flex: none; border-radius: 50%; background: var(--sodium);
   box-shadow: 0 0 40px var(--sodium); transform: scale(0);
-  animation: pop .6s cubic-bezier(.3, 1.6, .5, 1) .8s forwards,
-             beacon 2.8s ease-in-out 1.5s infinite;
+  animation-name: pop, beacon;
+  animation-duration: .6s, 2.8s;
+  animation-timing-function: cubic-bezier(.3, 1.6, .5, 1), ease-in-out;
+  animation-delay: var(--d, .8s), calc(var(--d, .8s) + .8s);
+  animation-fill-mode: forwards, none;
+  animation-iteration-count: 1, infinite;
 }
 @keyframes rise { to { transform: none; opacity: 1; } }
 @keyframes pop { to { transform: scale(1); } }
