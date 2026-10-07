@@ -17,6 +17,7 @@ from contextlib import contextmanager
 
 import psycopg
 from psycopg.rows import dict_row
+from psycopg_pool import ConnectionPool
 
 # ─────────────────────────────────────────────────────────────── connection
 
@@ -29,20 +30,55 @@ if "neon.tech" in DATABASE_URL and "sslmode=" not in DATABASE_URL:
     DATABASE_URL += ("&" if "?" in DATABASE_URL else "?") + "sslmode=require"
 
 
+# prepare_threshold=None disables psycopg's automatic prepared statements.
+# Neon's pooled endpoint is PgBouncer in transaction mode, where a statement
+# prepared on one backend connection may not exist on the next one, which
+# surfaces as a baffling "prepared statement does not exist". Nothing here is
+# hot enough to miss them.
+_CONN_KW = {"row_factory": dict_row, "prepare_threshold": None}
+
+_pool: ConnectionPool | None = None
+
+
+def pool() -> ConnectionPool:
+    """A connection pool, created on first use.
+
+    Opening a connection to a managed Postgres costs a TLS handshake, and the
+    home page alone runs three queries: without a pool every page view paid for
+    three handshakes. Built lazily rather than at import so that gunicorn
+    workers each get their own after forking, and so importing this module
+    never requires a reachable database.
+    """
+    global _pool
+    if _pool is None:
+        _pool = ConnectionPool(
+            DATABASE_URL,
+            min_size=1,
+            max_size=int(os.environ.get("DB_POOL_MAX", 6)),
+            max_idle=120,
+            timeout=15,
+            kwargs=_CONN_KW,
+            open=True,
+        )
+    return _pool
+
+
 @contextmanager
 def connect(autocommit: bool = True):
-    """One short-lived connection per request.
+    """Borrow a pooled connection.
 
     Autocommit is ON by default, so a single-statement helper cannot silently
-    lose an INSERT ... RETURNING by closing without committing.  The booking,
-    cancellation and check-in paths pass autocommit=False, because each of them
-    is several statements that must land together or not at all.
+    lose an INSERT ... RETURNING by returning the connection without
+    committing. The booking, cancellation and check-in paths pass
+    autocommit=False, because each is several statements that must land
+    together or not at all.
     """
-    conn = psycopg.connect(DATABASE_URL, row_factory=dict_row, autocommit=autocommit)
-    try:
+    with pool().connection() as conn:
+        # Safe to flip here: the pool only hands back connections with no
+        # transaction in flight.
+        if conn.autocommit != autocommit:
+            conn.autocommit = autocommit
         yield conn
-    finally:
-        conn.close()
 
 
 def query(sql: str, params: tuple | None = None, one: bool = False):

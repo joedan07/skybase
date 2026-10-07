@@ -4,6 +4,12 @@ Build the database from nothing: schema, seed, accounts, demo traffic.
 
     python init_db.py              # against $DATABASE_URL (or local skybase)
     python init_db.py --no-demo    # schema + seed + accounts only
+    python init_db.py --light      # a fifth of the demo traffic
+
+--light exists for remote databases. Every booking goes through book_seats(),
+which opens its own connection, and a connection to a managed Postgres in
+another region costs about half a second of TLS handshake. The full set is
+~690 bookings, which is ten minutes over the wire and twenty seconds locally.
 
 Demo bookings go through db.book_seats(), the same function the website calls,
 so the sample data is guaranteed consistent with every constraint and trigger
@@ -95,17 +101,19 @@ def make_accounts() -> list[int]:
     return ids
 
 
-def make_demo_traffic(customer_ids: list[int]) -> None:
+def make_demo_traffic(customer_ids: list[int], light: bool = False) -> None:
     """Sell a realistic scatter of seats so the reports have something to say."""
     random.seed(18)
+    back, fwd = (1, 2) if light else (3, 4)
     flights = db.query(
         """
         SELECT f.flight_id, f.dep_date, f.base_fare,
                (SELECT count(*) FROM seat WHERE aircraft_id = f.aircraft_id) AS cap
           FROM flight f
-         WHERE f.dep_date BETWEEN CURRENT_DATE - 3 AND CURRENT_DATE + 4
+         WHERE f.dep_date BETWEEN CURRENT_DATE - %s AND CURRENT_DATE + %s
          ORDER BY f.sched_dep
-        """
+        """,
+        (back, fwd),
     )
 
     booked = cancelled = 0
@@ -114,6 +122,8 @@ def make_demo_traffic(customer_ids: list[int]) -> None:
         past = f["dep_date"] < __import__("datetime").date.today()
         target = int(f["cap"] * (random.uniform(0.45, 0.82) if past
                                  else random.uniform(0.08, 0.38)))
+        if light:
+            target = max(2, target // 3)
 
         free = db.query(
             """
@@ -185,6 +195,7 @@ def is_local(url: str) -> bool:
 
 def main() -> None:
     demo = "--no-demo" not in sys.argv
+    light = "--light" in sys.argv
     target = db.DATABASE_URL
     shown = target.split("@")[-1] if "@" in target else target
 
@@ -209,8 +220,8 @@ def main() -> None:
     ids = make_accounts()
 
     if demo:
-        print("demo traffic")
-        make_demo_traffic(ids)
+        print("demo traffic" + (" (light)" if light else ""))
+        make_demo_traffic(ids, light=light)
 
     counts = db.query(
         """

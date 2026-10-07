@@ -5,8 +5,10 @@ __pycache__/
 venv/
 
 # secrets — never committed; see .env.example
-.env
-.env.local
+# Deliberately a glob: .env.neon, .env.production and anything else of that
+# shape must be unable to reach a public repository by accident.
+.env*
+!.env.example
 
 # os / editor
 .DS_Store
