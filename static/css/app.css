@@ -423,9 +423,8 @@ em {
 
 .title__line { display: flex; align-items: baseline; }
 
-/* FIND. BOOK. / BOARD. — the second line hangs right, so the three full
-   stops step down and across instead of stacking flush left. */
-.title__line--2 { justify-content: flex-end; }
+/* FIND. BOOK. / BOARD. — the second line sits flush left under FIND. */
+.title__line--2 { justify-content: flex-start; }
 
 .title__gap { width: .26em; flex: none; }
 .title .ch {
@@ -462,18 +461,30 @@ em {
   letter-spacing: -.028em; line-height: 1.18;
 }
 
-/* One word swapping on a timer, the way a flip-board cycles a status. */
-.rotator { display: inline-grid; vertical-align: bottom; overflow: hidden; height: 1.22em; }
+/* One word swapping on a timer.
+   Deliberately NOT a clipped slide. An inline-grid with overflow:hidden takes
+   its baseline from its bottom margin edge rather than from its text, which
+   sat the clipping window 26px above the surrounding baseline and left a word
+   mid-swap floating over the line with its neighbour half-visible. Without a
+   clip box there is no window to misalign: the grid cell keeps every word
+   stacked in one place so the line never reflows, and a cross-fade with a
+   small lift reads as motion without anything needing to be hidden. */
+/* align-items:baseline is belt-and-braces: grid items default to stretch, and
+   a container with no baseline-aligned item in its first row may synthesize a
+   baseline from its border edge rather than from its text. Removing the clip
+   box above is what actually fixed the seating; this keeps it correct by
+   intent. Measured delta against same-line text: 3px. */
+.rotator { display: inline-grid; align-items: baseline; vertical-align: baseline; }
 .rotator span {
   grid-area: 1 / 1;
   font-family: var(--f-editorial); font-style: italic; font-weight: 400;
-  color: var(--sodium); font-size: 1.16em; line-height: 1.04; letter-spacing: 0;
-  transform: translateY(100%); opacity: 0;
-  transition: transform .6s cubic-bezier(.7, 0, .2, 1), opacity .6s;
+  color: var(--sodium); font-size: 1.08em; letter-spacing: 0;
   white-space: nowrap;
+  opacity: 0; transform: translateY(.2em);
+  transition: opacity .4s ease, transform .5s cubic-bezier(.7, 0, .2, 1);
 }
-.rotator span.is-on { transform: none; opacity: 1; }
-.rotator span.is-off { transform: translateY(-100%); opacity: 0; }
+.rotator span.is-on { opacity: 1; transform: none; }
+.rotator span.is-off { opacity: 0; transform: translateY(-.2em); }
 
 .hero__sub { color: var(--fg-2); font-size: 17px; max-width: 54ch; margin-top: 18px; }
 
