@@ -96,7 +96,7 @@
         <div class="stack" style="justify-content:flex-end;gap:14px">
           <div class="result__price">
             <span class="muted mono" style="font-size:12px">₹</span>
-            <b>{{ (f.base_fare * 2.4) | round | int | rupees if cabin == 'BUSINESS' else f.base_fare|rupees }}</b>
+            <b>{{ f.display_fare|rupees }}</b>
           </div>
           {% if f.cabin_free > 0 %}
           <a class="btn" href="{{ url_for('flight_detail', flight_id=f.flight_id, cabin=cabin, pax=pax) }}">Select</a>

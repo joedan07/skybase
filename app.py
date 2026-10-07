@@ -205,6 +205,14 @@ def search():
             (cabin, origin, dest, when),
         )
 
+    # Work the fare out here, with the same function the booking transaction
+    # uses, so the price on the results page is by construction the price that
+    # gets charged. Doing the arithmetic in the template also meant multiplying
+    # a Decimal by a float, which raises TypeError -- it only ever fired on a
+    # Business search, which is why it survived every Economy test.
+    for f in flights:
+        f["display_fare"] = db.fare_for(f["base_fare"], cabin)
+
     return render_template("search.html", airports=airports, flights=flights,
                            origin=origin, dest=dest, when=when, cabin=cabin,
                            pax=pax, today=date.today().isoformat())
