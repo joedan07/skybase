@@ -1,0 +1,331 @@
+<svg class="er" width="1690" height="1170" viewBox="0 0 1690 1170" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Entity relationship diagram for the airline reservation database">
+<style><![CDATA[
+.er{width:1690px;height:auto;font-family:ui-monospace,Menlo,monospace}
+.er .ebox{filter:drop-shadow(0 6px 16px rgba(0,0,0,.5))}
+.er .et{font-size:13px;font-weight:700;letter-spacing:.06em;font-family:Inter,system-ui,sans-serif}
+.er text{font-size:11px;fill:#c3d2e8}
+.er .bdg{font-size:8.5px;font-weight:700;letter-spacing:.08em}
+.er .pk{fill:#e8b44a} .er .fk{fill:#7fb3f0} .er .uq{fill:#b58ce0} .er .at{fill:#9fb0c9}
+.er .link{fill:none;stroke:#5c7899;stroke-width:1.6}
+.er .link.dash{stroke-dasharray:5 4;stroke:#4d6480}
+.er .foot{fill:none;stroke:#8fb0d4;stroke-width:1.7}
+.er .rl{font-size:10px;fill:#8ea6c4;font-style:italic;font-family:Inter,system-ui,sans-serif}
+
+]]></style>
+<rect width="1690" height="1170" fill="#070d1a"/>
+
+<defs>
+<linearGradient id="gb" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#12203c"/><stop offset="1" stop-color="#0c1729"/></linearGradient>
+<linearGradient id="gc" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#1b2c4d" stop-opacity=".95"/><stop offset="1" stop-color="#0e1b31"/></linearGradient>
+<linearGradient id="gg" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#26351f"/><stop offset="1" stop-color="#131d16"/></linearGradient>
+<linearGradient id="gv" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#241b34"/><stop offset="1" stop-color="#150f20"/></linearGradient>
+</defs>
+<g class="ent">
+<rect class="ebox" x="30" y="40" width="250" height="153.0" rx="10" fill="url(#gb)" stroke="#4aa8ff"/>
+<path d="M30,70 h250" stroke="#4aa8ff" stroke-opacity=".55" stroke-width="1"/>
+<rect x="30" y="40" width="250" height="30" rx="10" fill="#4aa8ff" fill-opacity=".13"/>
+<text class="et" x="42" y="60" fill="#4aa8ff">AIRPORT</text>
+<text class="bdg pk" x="42" y="90">PK</text>
+<text class="pk" x="70" y="90">airport_id</text>
+<text class="bdg uq" x="42" y="107.5">AK</text>
+<text class="uq" x="70" y="107.5">iata_code</text>
+<text class="bdg uq" x="42" y="125.0">AK</text>
+<text class="uq" x="70" y="125.0">icao_code</text>
+<text class="at" x="70" y="142.5">airport_name</text>
+<text class="at" x="70" y="160.0">city / country</text>
+<text class="at" x="70" y="177.5">tz_offset</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="330" y="40" width="250" height="135.5" rx="10" fill="url(#gb)" stroke="#4aa8ff"/>
+<path d="M330,70 h250" stroke="#4aa8ff" stroke-opacity=".55" stroke-width="1"/>
+<rect x="330" y="40" width="250" height="30" rx="10" fill="#4aa8ff" fill-opacity=".13"/>
+<text class="et" x="342" y="60" fill="#4aa8ff">ROUTE</text>
+<text class="bdg pk" x="342" y="90">PK</text>
+<text class="pk" x="370" y="90">route_id</text>
+<text class="bdg fk" x="342" y="107.5">FK</text>
+<text class="fk" x="370" y="107.5">origin_airport_id</text>
+<text class="bdg fk" x="342" y="125.0">FK</text>
+<text class="fk" x="370" y="125.0">dest_airport_id</text>
+<text class="at" x="370" y="142.5">distance_km</text>
+<text class="at" x="370" y="160.0">block_time_min</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="700" y="40" width="250" height="188.0" rx="10" fill="url(#gc)" stroke="#e8b44a"/>
+<path d="M700,70 h250" stroke="#e8b44a" stroke-opacity=".55" stroke-width="1"/>
+<rect x="700" y="40" width="250" height="30" rx="10" fill="#e8b44a" fill-opacity=".13"/>
+<text class="et" x="712" y="60" fill="#e8b44a">FLIGHT</text>
+<text class="bdg pk" x="712" y="90">PK</text>
+<text class="pk" x="740" y="90">flight_id</text>
+<text class="bdg uq" x="712" y="107.5">AK</text>
+<text class="uq" x="740" y="107.5">flight_no + dep_date</text>
+<text class="bdg fk" x="712" y="125.0">FK</text>
+<text class="fk" x="740" y="125.0">route_id</text>
+<text class="bdg fk" x="712" y="142.5">FK</text>
+<text class="fk" x="740" y="142.5">aircraft_id</text>
+<text class="at" x="740" y="160.0">sched_dep_ts / sched_arr_ts</text>
+<text class="at" x="740" y="177.5">actual_dep_ts / actual_arr_ts</text>
+<text class="at" x="740" y="195.0">gate_no</text>
+<text class="at" x="740" y="212.5">flight_status</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="1070" y="40" width="250" height="135.5" rx="10" fill="url(#gb)" stroke="#4aa8ff"/>
+<path d="M1070,70 h250" stroke="#4aa8ff" stroke-opacity=".55" stroke-width="1"/>
+<rect x="1070" y="40" width="250" height="30" rx="10" fill="#4aa8ff" fill-opacity=".13"/>
+<text class="et" x="1082" y="60" fill="#4aa8ff">AIRCRAFT</text>
+<text class="bdg pk" x="1082" y="90">PK</text>
+<text class="pk" x="1110" y="90">aircraft_id</text>
+<text class="bdg uq" x="1082" y="107.5">AK</text>
+<text class="uq" x="1110" y="107.5">tail_number</text>
+<text class="bdg fk" x="1082" y="125.0">FK</text>
+<text class="fk" x="1110" y="125.0">type_id</text>
+<text class="at" x="1110" y="142.5">year_of_mfr</text>
+<text class="at" x="1110" y="160.0">ac_status</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="1400" y="40" width="250" height="118.0" rx="10" fill="url(#gb)" stroke="#4aa8ff"/>
+<path d="M1400,70 h250" stroke="#4aa8ff" stroke-opacity=".55" stroke-width="1"/>
+<rect x="1400" y="40" width="250" height="30" rx="10" fill="#4aa8ff" fill-opacity=".13"/>
+<text class="et" x="1412" y="60" fill="#4aa8ff">AIRCRAFT_TYPE</text>
+<text class="bdg pk" x="1412" y="90">PK</text>
+<text class="pk" x="1440" y="90">type_id</text>
+<text class="bdg uq" x="1412" y="107.5">AK</text>
+<text class="uq" x="1440" y="107.5">model_code</text>
+<text class="at" x="1440" y="125.0">manufacturer</text>
+<text class="at" x="1440" y="142.5">total_capacity</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="700" y="300" width="250" height="170.5" rx="10" fill="url(#gc)" stroke="#e8b44a"/>
+<path d="M700,330 h250" stroke="#e8b44a" stroke-opacity=".55" stroke-width="1"/>
+<rect x="700" y="300" width="250" height="30" rx="10" fill="#e8b44a" fill-opacity=".13"/>
+<text class="et" x="712" y="320" fill="#e8b44a">FARE</text>
+<text class="bdg pk" x="712" y="350">PK</text>
+<text class="pk" x="740" y="350">fare_id</text>
+<text class="bdg fk" x="712" y="367.5">FK</text>
+<text class="fk" x="740" y="367.5">flight_id</text>
+<text class="bdg fk" x="712" y="385.0">FK</text>
+<text class="fk" x="740" y="385.0">class_code</text>
+<text class="at" x="740" y="402.5">base_fare / taxes</text>
+<text class="at" x="740" y="420.0">refundable_flag</text>
+<text class="at" x="740" y="437.5">cancel_fee_pct</text>
+<text class="at" x="740" y="455.0">valid_from / valid_to</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="1070" y="300" width="250" height="118.0" rx="10" fill="url(#gb)" stroke="#4aa8ff"/>
+<path d="M1070,330 h250" stroke="#4aa8ff" stroke-opacity=".55" stroke-width="1"/>
+<rect x="1070" y="300" width="250" height="30" rx="10" fill="#4aa8ff" fill-opacity=".13"/>
+<text class="et" x="1082" y="320" fill="#4aa8ff">CABIN_CLASS</text>
+<text class="bdg pk" x="1082" y="350">PK</text>
+<text class="pk" x="1110" y="350">class_code</text>
+<text class="at" x="1110" y="367.5">class_name</text>
+<text class="at" x="1110" y="385.0">free_bag_kg</text>
+<text class="at" x="1110" y="402.5">priority_rank</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="1400" y="300" width="250" height="135.5" rx="10" fill="url(#gb)" stroke="#4aa8ff"/>
+<path d="M1400,330 h250" stroke="#4aa8ff" stroke-opacity=".55" stroke-width="1"/>
+<rect x="1400" y="300" width="250" height="30" rx="10" fill="#4aa8ff" fill-opacity=".13"/>
+<text class="et" x="1412" y="320" fill="#4aa8ff">SEAT</text>
+<text class="bdg pk" x="1412" y="350">PK</text>
+<text class="pk" x="1440" y="350">seat_id</text>
+<text class="bdg fk" x="1412" y="367.5">FK</text>
+<text class="fk" x="1440" y="367.5">type_id</text>
+<text class="bdg uq" x="1412" y="385.0">AK</text>
+<text class="uq" x="1440" y="385.0">seat_no (per type)</text>
+<text class="bdg fk" x="1412" y="402.5">FK</text>
+<text class="fk" x="1440" y="402.5">class_code</text>
+<text class="at" x="1440" y="420.0">is_exit_row</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="30" y="560" width="250" height="153.0" rx="10" fill="url(#gb)" stroke="#4aa8ff"/>
+<path d="M30,590 h250" stroke="#4aa8ff" stroke-opacity=".55" stroke-width="1"/>
+<rect x="30" y="560" width="250" height="30" rx="10" fill="#4aa8ff" fill-opacity=".13"/>
+<text class="et" x="42" y="580" fill="#4aa8ff">PASSENGER</text>
+<text class="bdg pk" x="42" y="610">PK</text>
+<text class="pk" x="70" y="610">passenger_id</text>
+<text class="bdg uq" x="42" y="627.5">AK</text>
+<text class="uq" x="70" y="627.5">passport_no</text>
+<text class="at" x="70" y="645.0">first_name / last_name</text>
+<text class="at" x="70" y="662.5">date_of_birth</text>
+<text class="at" x="70" y="680.0">nationality</text>
+<text class="at" x="70" y="697.5">email / phone</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="330" y="560" width="250" height="170.5" rx="10" fill="url(#gc)" stroke="#e8b44a"/>
+<path d="M330,590 h250" stroke="#e8b44a" stroke-opacity=".55" stroke-width="1"/>
+<rect x="330" y="560" width="250" height="30" rx="10" fill="#e8b44a" fill-opacity=".13"/>
+<text class="et" x="342" y="580" fill="#e8b44a">BOOKING</text>
+<text class="bdg pk" x="342" y="610">PK</text>
+<text class="pk" x="370" y="610">booking_id</text>
+<text class="bdg uq" x="342" y="627.5">AK</text>
+<text class="uq" x="370" y="627.5">pnr</text>
+<text class="bdg fk" x="342" y="645.0">FK</text>
+<text class="fk" x="370" y="645.0">lead_passenger_id</text>
+<text class="bdg fk" x="342" y="662.5">FK</text>
+<text class="fk" x="370" y="662.5">created_by_user_id</text>
+<text class="at" x="370" y="680.0">booking_ts / channel</text>
+<text class="at" x="370" y="697.5">booking_status</text>
+<text class="at" x="370" y="715.0">total_amount</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="700" y="560" width="250" height="223.0" rx="10" fill="url(#gg)" stroke="#7ee081"/>
+<path d="M700,590 h250" stroke="#7ee081" stroke-opacity=".55" stroke-width="1"/>
+<rect x="700" y="560" width="250" height="30" rx="10" fill="#7ee081" fill-opacity=".13"/>
+<text class="et" x="712" y="580" fill="#7ee081">TICKET  ◆</text>
+<text class="bdg pk" x="712" y="610">PK</text>
+<text class="pk" x="740" y="610">ticket_id</text>
+<text class="bdg uq" x="712" y="627.5">AK</text>
+<text class="uq" x="740" y="627.5">ticket_no</text>
+<text class="bdg fk" x="712" y="645.0">FK</text>
+<text class="fk" x="740" y="645.0">booking_id</text>
+<text class="bdg fk" x="712" y="662.5">FK</text>
+<text class="fk" x="740" y="662.5">flight_id</text>
+<text class="bdg fk" x="712" y="680.0">FK</text>
+<text class="fk" x="740" y="680.0">passenger_id</text>
+<text class="bdg fk" x="712" y="697.5">FK</text>
+<text class="fk" x="740" y="697.5">seat_id  (nullable)</text>
+<text class="bdg fk" x="712" y="715.0">FK</text>
+<text class="fk" x="740" y="715.0">fare_id</text>
+<text class="bdg uq" x="712" y="732.5">AK</text>
+<text class="uq" x="740" y="732.5">(flight_id, passenger_id)</text>
+<text class="bdg uq" x="712" y="750.0">AK</text>
+<text class="uq" x="740" y="750.0">(flight_id, seat_id)</text>
+<text class="at" x="740" y="767.5">ticket_status</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="1070" y="560" width="250" height="135.5" rx="10" fill="url(#gb)" stroke="#4aa8ff"/>
+<path d="M1070,590 h250" stroke="#4aa8ff" stroke-opacity=".55" stroke-width="1"/>
+<rect x="1070" y="560" width="250" height="30" rx="10" fill="#4aa8ff" fill-opacity=".13"/>
+<text class="et" x="1082" y="580" fill="#4aa8ff">CHECK_IN</text>
+<text class="bdg pk" x="1082" y="610">PK</text>
+<text class="pk" x="1110" y="610">checkin_id</text>
+<text class="bdg fk" x="1082" y="627.5">FK</text>
+<text class="fk" x="1110" y="627.5">ticket_id  (unique)</text>
+<text class="at" x="1110" y="645.0">checkin_ts / method</text>
+<text class="bdg uq" x="1082" y="662.5">AK</text>
+<text class="uq" x="1110" y="662.5">boarding_pass_no</text>
+<text class="at" x="1110" y="680.0">boarding_seq</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="1400" y="560" width="250" height="135.5" rx="10" fill="url(#gb)" stroke="#4aa8ff"/>
+<path d="M1400,590 h250" stroke="#4aa8ff" stroke-opacity=".55" stroke-width="1"/>
+<rect x="1400" y="560" width="250" height="30" rx="10" fill="#4aa8ff" fill-opacity=".13"/>
+<text class="et" x="1412" y="580" fill="#4aa8ff">BAGGAGE</text>
+<text class="bdg pk" x="1412" y="610">PK</text>
+<text class="pk" x="1440" y="610">baggage_id</text>
+<text class="bdg uq" x="1412" y="627.5">AK</text>
+<text class="uq" x="1440" y="627.5">tag_no</text>
+<text class="bdg fk" x="1412" y="645.0">FK</text>
+<text class="fk" x="1440" y="645.0">checkin_id</text>
+<text class="at" x="1440" y="662.5">weight_kg  ≥ 0</text>
+<text class="at" x="1440" y="680.0">bag_status</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="30" y="860" width="250" height="135.5" rx="10" fill="url(#gb)" stroke="#4aa8ff"/>
+<path d="M30,890 h250" stroke="#4aa8ff" stroke-opacity=".55" stroke-width="1"/>
+<rect x="30" y="860" width="250" height="30" rx="10" fill="#4aa8ff" fill-opacity=".13"/>
+<text class="et" x="42" y="880" fill="#4aa8ff">APP_USER</text>
+<text class="bdg pk" x="42" y="910">PK</text>
+<text class="pk" x="70" y="910">user_id</text>
+<text class="bdg uq" x="42" y="927.5">AK</text>
+<text class="uq" x="70" y="927.5">login_id</text>
+<text class="bdg fk" x="42" y="945.0">FK</text>
+<text class="fk" x="70" y="945.0">role_code</text>
+<text class="at" x="70" y="962.5">full_name</text>
+<text class="at" x="70" y="980.0">is_active</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="1000" y="860" width="210" height="118.0" rx="10" fill="url(#gv)" stroke="#b58ce0"/>
+<path d="M1000,890 h210" stroke="#b58ce0" stroke-opacity=".55" stroke-width="1"/>
+<rect x="1000" y="860" width="210" height="30" rx="10" fill="#b58ce0" fill-opacity=".13"/>
+<text class="et" x="1012" y="880" fill="#b58ce0">ROLE</text>
+<text class="bdg pk" x="1012" y="910">PK</text>
+<text class="pk" x="1040" y="910">role_code</text>
+<text class="bdg uq" x="1012" y="927.5">AK</text>
+<text class="uq" x="1040" y="927.5">role_name</text>
+<text class="at" x="1040" y="945.0">landing_section</text>
+<text class="at" x="1040" y="962.5">is_system</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="1240" y="860" width="210" height="118.0" rx="10" fill="url(#gg)" stroke="#7ee081"/>
+<path d="M1240,890 h210" stroke="#7ee081" stroke-opacity=".55" stroke-width="1"/>
+<rect x="1240" y="860" width="210" height="30" rx="10" fill="#7ee081" fill-opacity=".13"/>
+<text class="et" x="1252" y="880" fill="#7ee081">ROLE_PERMISSION  ◆</text>
+<text class="bdg pk" x="1252" y="910">PK</text>
+<text class="pk" x="1280" y="910">role_perm_id</text>
+<text class="bdg fk" x="1252" y="927.5">FK</text>
+<text class="fk" x="1280" y="927.5">role_code</text>
+<text class="bdg fk" x="1252" y="945.0">FK</text>
+<text class="fk" x="1280" y="945.0">permission_code</text>
+<text class="bdg uq" x="1252" y="962.5">AK</text>
+<text class="uq" x="1280" y="962.5">(role, permission)</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="1480" y="860" width="195" height="118.0" rx="10" fill="url(#gv)" stroke="#b58ce0"/>
+<path d="M1480,890 h195" stroke="#b58ce0" stroke-opacity=".55" stroke-width="1"/>
+<rect x="1480" y="860" width="195" height="30" rx="10" fill="#b58ce0" fill-opacity=".13"/>
+<text class="et" x="1492" y="880" fill="#b58ce0">PERMISSION</text>
+<text class="bdg pk" x="1492" y="910">PK</text>
+<text class="pk" x="1520" y="910">permission_code</text>
+<text class="at" x="1520" y="927.5">module</text>
+<text class="at" x="1520" y="945.0">action</text>
+<text class="at" x="1520" y="962.5">description</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="330" y="860" width="250" height="153.0" rx="10" fill="url(#gb)" stroke="#4aa8ff"/>
+<path d="M330,890 h250" stroke="#4aa8ff" stroke-opacity=".55" stroke-width="1"/>
+<rect x="330" y="860" width="250" height="30" rx="10" fill="#4aa8ff" fill-opacity=".13"/>
+<text class="et" x="342" y="880" fill="#4aa8ff">PAYMENT</text>
+<text class="bdg pk" x="342" y="910">PK</text>
+<text class="pk" x="370" y="910">payment_id</text>
+<text class="bdg fk" x="342" y="927.5">FK</text>
+<text class="fk" x="370" y="927.5">booking_id</text>
+<text class="bdg uq" x="342" y="945.0">AK</text>
+<text class="uq" x="370" y="945.0">txn_reference</text>
+<text class="at" x="370" y="962.5">amount / method</text>
+<text class="at" x="370" y="980.0">paid_ts</text>
+<text class="at" x="370" y="997.5">pay_status</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="700" y="860" width="250" height="153.0" rx="10" fill="url(#gb)" stroke="#4aa8ff"/>
+<path d="M700,890 h250" stroke="#4aa8ff" stroke-opacity=".55" stroke-width="1"/>
+<rect x="700" y="860" width="250" height="30" rx="10" fill="#4aa8ff" fill-opacity=".13"/>
+<text class="et" x="712" y="880" fill="#4aa8ff">CANCELLATION</text>
+<text class="bdg pk" x="712" y="910">PK</text>
+<text class="pk" x="740" y="910">cancellation_id</text>
+<text class="bdg fk" x="712" y="927.5">FK</text>
+<text class="fk" x="740" y="927.5">ticket_id  (unique)</text>
+<text class="at" x="740" y="945.0">cancel_ts</text>
+<text class="at" x="740" y="962.5">reason_code</text>
+<text class="at" x="740" y="980.0">refund_amount</text>
+<text class="bdg fk" x="712" y="997.5">FK</text>
+<text class="fk" x="740" y="997.5">processed_by_user_id</text>
+</g>
+<path class="link" d="M280,82.84 L330,83.36"/><path class="foot" d="M293,74.84 L293,90.84"/><path class="foot" d="M317,74.36 L330,83.36 L317,92.36"/><path class="foot" d="M330,83.36 L317,83.36"/><text class="rl" x="294" y="62">origin</text>
+<path class="link" d="M280,154.75 L330,137.56"/><path class="foot" d="M293,146.75 L293,162.75"/><path class="foot" d="M317,128.56 L330,137.56 L317,146.56"/><path class="foot" d="M330,137.56 L317,137.56"/><text class="rl" x="298" y="141">dest</text>
+<path class="link" d="M580,107.75 L635,107.75 L635,92.64000000000001 L700,92.64000000000001"/><path class="foot" d="M593,99.75 L593,115.75"/><path class="foot" d="M687,83.64000000000001 L700,92.64000000000001 L687,101.64000000000001"/><path class="foot" d="M700,92.64000000000001 L687,92.64000000000001"/><text class="rl" x="642" y="114">is flown as</text>
+<path class="link" d="M1070,107.75 L1025,107.75 L1025,105.8 L950,105.8"/><path class="foot" d="M1057,99.75 L1057,115.75"/><path class="foot" d="M963,96.8 L950,105.8 L963,114.8"/><path class="foot" d="M950,105.8 L963,105.8"/><text class="rl" x="952" y="85">operates</text>
+<path class="link" d="M1400,104.9 L1320,107.75"/><path class="foot" d="M1387,96.9 L1387,112.9"/><path class="foot" d="M1333,98.75 L1320,107.75 L1333,116.75"/><path class="foot" d="M1320,107.75 L1333,107.75"/><text class="rl" x="1330" y="98">type of</text>
+<path class="link" d="M1525.0,158.0 L1525.0,300"/><path class="foot" d="M1517.0,171.0 L1533.0,171.0"/><path class="foot" d="M1516.0,287 L1525.0,300 L1534.0,287"/><path class="foot" d="M1525.0,300 L1525.0,287"/><text class="rl" x="1530" y="240">defines seat map</text>
+<path class="link" d="M787.5,228.0 L787.5,300"/><path class="foot" d="M779.5,241.0 L795.5,241.0"/><path class="foot" d="M778.5,287 L787.5,300 L796.5,287"/><path class="foot" d="M787.5,300 L787.5,287"/><text class="rl" x="792" y="293">is priced by</text>
+<path class="link" d="M1070,347.2 L950,359.675"/><path class="foot" d="M1057,339.2 L1057,355.2"/><path class="foot" d="M963,350.675 L950,359.675 L963,368.675"/><path class="foot" d="M950,359.675 L963,359.675"/><text class="rl" x="962" y="332">applies to</text>
+<path class="link" d="M1320,382.6 L1400,384.01"/><path class="foot" d="M1333,374.6 L1333,390.6"/><path class="foot" d="M1387,375.01 L1400,384.01 L1387,393.01"/><path class="foot" d="M1400,384.01 L1387,384.01"/><text class="rl" x="1328" y="388">categorises</text>
+<path class="link" d="M905.0,228.0 L905.0,278 L978,278 L978,530 L895.0,530 L895.0,560"/><path class="foot" d="M897.0,241.0 L913.0,241.0"/><path class="foot" d="M886.0,547 L895.0,560 L904.0,547"/><path class="foot" d="M895.0,560 L895.0,547"/><text class="rl" x="986" y="430">carries</text>
+<path class="link" d="M775.0,470.5 L770.0,560"/><path class="foot" d="M767.0,483.5 L783.0,483.5"/><path class="foot" d="M761.0,547 L770.0,560 L779.0,547"/><path class="foot" d="M770.0,560 L770.0,547"/><text class="rl" x="720" y="548">prices</text>
+<path class="link" d="M280,621.2 L330,628.2"/><path class="foot" d="M293,613.2 L293,629.2"/><path class="foot" d="M317,619.2 L330,628.2 L317,637.2"/><path class="foot" d="M330,628.2 L317,628.2"/><text class="rl" x="292" y="598">makes</text>
+<path class="link" d="M580,636.725 L700,638.05"/><path class="foot" d="M593,628.725 L593,644.725"/><path class="foot" d="M687,629.05 L700,638.05 L687,647.05"/><path class="foot" d="M700,638.05 L687,638.05"/><text class="rl" x="592" y="610">issues</text>
+<path class="link" d="M180.0,713.0 L180.0,826 L660,826 L660,749.55 L700,749.55"/><path class="foot" d="M172.0,726.0 L188.0,726.0"/><path class="foot" d="M687,740.55 L700,749.55 L687,758.55"/><path class="foot" d="M700,749.55 L687,749.55"/><text class="rl" x="266" y="816">travels on</text>
+<path class="link" d="M1525.0,435.5 L1525.0,498 L1010,498 L1010,615.75 L950,615.75"/><path class="foot" d="M1517.0,448.5 L1533.0,448.5"/><path class="foot" d="M963,607.75 L963,623.75"/><path class="foot" d="M972,615.75 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0"/><text class="rl" x="1340" y="492">is assigned to</text>
+<path class="link" d="M950,698.26 L1070,620.975"/><path class="foot" d="M963,690.26 L963,706.26"/><path class="foot" d="M1057,612.975 L1057,628.975"/><path class="foot" d="M1048,620.975 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0"/><text class="rl" x="964" y="660">produces</text>
+<path class="link" d="M1320,641.3 L1400,627.75"/><path class="foot" d="M1333,633.3 L1333,649.3"/><path class="foot" d="M1387,618.75 L1400,627.75 L1387,636.75"/><path class="foot" d="M1400,627.75 L1387,627.75"/><text class="rl" x="1332" y="648">registers</text>
+<path class="link" d="M850.0,783.0 L825.0,860"/><path class="foot" d="M842.0,796.0 L858.0,796.0"/><path class="foot" d="M817.0,847 L833.0,847"/><path class="foot" d="M825.0,838 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0"/><text class="rl" x="868" y="838">may be voided by</text>
+<path class="link" d="M430.0,730.5 L430.0,860"/><path class="foot" d="M422.0,743.5 L438.0,743.5"/><path class="foot" d="M421.0,847 L430.0,860 L439.0,847"/><path class="foot" d="M430.0,860 L430.0,847"/><text class="rl" x="438" y="842">is settled by</text>
+<path class="link dash" d="M280,900.65 L308,900.65 L308,800 L367.5,800 L367.5,730.5"/><path class="foot" d="M293,892.65 L293,908.65"/><path class="foot" d="M358.5,743.5 L367.5,730.5 L376.5,743.5"/><path class="foot" d="M367.5,730.5 L367.5,743.5"/><text class="rl" x="280" y="856">creates / audits</text>
+<path class="link dash" d="M280,952.14 L314,952.14 L314,1059.0 L905.0,1059.0 L905.0,1013.0"/><path class="foot" d="M293,944.14 L293,960.14"/><path class="foot" d="M896.0,1026.0 L905.0,1013.0 L914.0,1026.0"/><path class="foot" d="M905.0,1013.0 L905.0,1026.0"/><text class="rl" x="480" y="1053.0">processes</text>
+<path class="link" d="M1073.5,978.0 L1073.5,1091.5 L117.5,1091.5 L117.5,995.5"/><path class="foot" d="M1065.5,991.0 L1081.5,991.0"/><path class="foot" d="M108.5,1008.5 L117.5,995.5 L126.5,1008.5"/><path class="foot" d="M117.5,995.5 L117.5,1008.5"/><text class="rl" x="560" y="1085.5">is held by</text>
+<path class="link" d="M1210,919.0 L1240,919.0"/><path class="foot" d="M1223,911.0 L1223,927.0"/><path class="foot" d="M1227,910.0 L1240,919.0 L1227,928.0"/><path class="foot" d="M1240,919.0 L1227,919.0"/><text class="rl" x="1216" y="894">grants</text>
+<path class="link" d="M1480,919.0 L1450,944.96"/><path class="foot" d="M1467,911.0 L1467,927.0"/><path class="foot" d="M1463,935.96 L1450,944.96 L1463,953.96"/><path class="foot" d="M1450,944.96 L1463,944.96"/><text class="rl" x="1448" y="984">granted by</text>
+</svg>

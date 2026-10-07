@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Sign in · SkyBase{% endblock %}
+
+{% block body %}
+<section class="auth wrap">
+  <div class="auth__card slip">
+    <div class="slip__head">
+      <span class="tag tag--sodium">Sign in</span>
+      <span class="tag">SB · Reservations</span>
+    </div>
+    <div class="slip__body">
+      <h2 style="font-size:24px;margin-bottom:6px">Welcome back</h2>
+      <p class="lede" style="font-size:13.5px;margin-bottom:18px">
+        <span class="serif">Your seat is where you left it.</span>
+      </p>
+
+      <form method="post">
+        <label class="field">
+          <span>Email</span>
+          <input class="input" type="email" name="email" value="{{ email or '' }}"
+                 autocomplete="email" required autofocus placeholder="you@example.com">
+        </label>
+        <label class="field">
+          <span>Password</span>
+          <input class="input" type="password" name="password"
+                 autocomplete="current-password" required placeholder="••••••••">
+        </label>
+        <button class="btn btn--block">Sign in</button>
+      </form>
+
+      <p class="tag" style="text-align:center;margin-top:16px">
+        No account? <a href="{{ url_for('signup') }}" style="color:var(--sodium)">Sign up</a>
+      </p>
+    </div>
+  </div>
+</section>
+{% endblock %}

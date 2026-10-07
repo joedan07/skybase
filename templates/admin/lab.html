@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block title %}Concurrency lab · SkyBase Ops{% endblock %}
+
+{% block body %}
+<section class="wrap" style="padding-top:28px">
+  <div class="adm-head">
+    <div>
+      <span class="tag tag--beacon">Concurrency lab</span>
+      <h1 style="margin-top:6px">Two agents, one seat</h1>
+      <p class="lede">The boundary case the whole design exists to survive. This fires
+        <b>two real transactions</b> at the same seat from two threads, and reports exactly
+        what PostgreSQL did to each of them. Nothing is simulated — these are genuine
+        <code>INSERT</code>s against the live database.</p>
+    </div>
+  </div>
+
+  {% if not flight or not seat %}
+    <div class="empty">
+      <b>No flight with spare seats</b>
+      The lab needs a future flight with at least three free seats. Add one from
+      <a href="{{ url_for('admin_flights') }}" style="color:var(--sodium)">Flights</a>.
+    </div>
+  {% else %}
+
+  <div class="slip" style="margin-bottom:18px">
+    <div class="slip__head">
+      <span class="tag tag--sodium">Test setup</span>
+      <span class="tag">{{ flight.flight_no }} · {{ flight.origin }} → {{ flight.destination }}</span>
+    </div>
+    <div class="slip__body">
+      <div class="pass__fields" style="margin-bottom:18px">
+        <div class="pf"><span>Flight</span><b>{{ flight.flight_no }}</b></div>
+        <div class="pf"><span>Contested seat</span><b style="color:var(--sodium)">{{ seat.seat_no }}</b></div>
+        <div class="pf"><span>Seats free</span><b>{{ flight.seats_free }} / {{ flight.capacity }}</b></div>
+        <div class="pf"><span>Departs</span><b style="font-size:13px">{{ flight.sched_dep|daymon }} {{ flight.sched_dep|hhmm }}</b></div>
+      </div>
+
+      <div class="stack" style="gap:14px;align-items:flex-end;flex-wrap:wrap">
+        <label class="field field--mono" style="margin:0;min-width:230px">
+          <span>Defence under test</span>
+          <select class="input" id="mode">
+            <option value="0">No lock — unique index alone</option>
+            <option value="1" selected>SELECT … FOR UPDATE row lock</option>
+          </select>
+        </label>
+        <label class="field field--mono" style="margin:0;max-width:150px">
+          <span>Hold lock (ms)</span>
+          <input class="input" type="number" id="hold" value="400" min="0" max="3000" step="100">
+        </label>
+        <button class="btn" id="run"
+                data-flight="{{ flight.flight_id }}" data-seat="{{ seat.seat_id }}">
+          Run the race
+        </button>
+        <button class="btn btn--ghost" id="reset">Release lab seats</button>
+      </div>
+
+      <p class="tag" style="margin-top:14px">
+        Both agents target seat {{ seat.seat_no }} at the same instant. Switch the mode to
+        see which defence catches it.
+      </p>
+    </div>
+  </div>
+
+  <div class="lab">
+    <div class="agent agent--a">
+      <div class="agent__head">T1 · Agent at counter A</div>
+      <div class="agent__body" id="a1">
+        <div class="agent__verdict is-wait">Idle</div>
+        <div class="agent__detail">Press <b>Run the race</b> to begin.</div>
+      </div>
+    </div>
+    <div class="agent agent--b">
+      <div class="agent__head">T2 · Agent at counter B</div>
+      <div class="agent__body" id="a2">
+        <div class="agent__verdict is-wait">Idle</div>
+        <div class="agent__detail">Both agents start within a millisecond of each other.</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="verdict"></div>
+
+  <div class="grid grid--2" style="margin-top:22px;align-items:start">
+    <details class="sqlbox" open>
+      <summary>Defence 1 — the row lock</summary>
+      <pre>-- Taken first, before anything is read. ORDER BY seat_id so two
+-- multi-seat bookings cannot deadlock by locking in opposite orders.
+SELECT seat_id FROM seat
+ WHERE seat_id = ANY(%s)
+ ORDER BY seat_id
+   FOR UPDATE;
+
+-- T1 gets the lock. T2 *blocks on this statement* rather than reading a
+-- stale "seat is free". When T1 commits, T2 resumes, re-reads, finds the
+-- seat gone, and bails cleanly — no error, no duplicate, no lost update.</pre>
+    </details>
+
+    <details class="sqlbox" open>
+      <summary>Defence 2 — the declarative backstop</summary>
+      <pre>CREATE UNIQUE INDEX uq_ticket_seat_per_flight
+    ON ticket (flight_id, seat_id)
+ WHERE seat_id IS NOT NULL;
+
+-- PARTIAL, so cancelling a ticket (seat_id -> NULL) frees the seat for the
+-- next passenger while two live tickets still cannot share it.
+--
+-- This holds even with the lock switched off, at a weaker isolation level,
+-- or from a different client entirely. A correctness guarantee should never
+-- depend on a developer remembering something.</pre>
+    </details>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const run = document.getElementById('run');
+  if (!run) return;
+  const reset = document.getElementById('reset');
+  const verdict = document.getElementById('verdict');
+
+  const CLS = {
+    'COMMITTED': 'is-ok',
+    'REJECTED': 'is-no',
+    'BLOCKED THEN BAILED': 'is-wait',
+    'ERROR': 'is-no',
+  };
+
+  function paint(slot, rec) {
+    const el = document.getElementById(slot);
+    if (!rec) {
+      el.innerHTML = '<div class="agent__verdict is-no">No result</div>' +
+        '<div class="agent__detail">The thread did not report back.</div>';
+      return;
+    }
+    let h = `<div class="agent__verdict ${CLS[rec.outcome] || 'is-wait'}">${rec.outcome}</div>`;
+    h += `<div class="agent__detail">${rec.detail || ''}</div>`;
+    if (rec.sqlstate) {
+      h += `<div class="agent__timing">SQLSTATE ${rec.sqlstate}</div>`;
+    }
+    if (rec.raw) h += `<div class="agent__raw">${rec.raw}</div>`;
+    h += `<div class="agent__timing">started +${rec.started_ms}ms · finished +${rec.finished_ms}ms</div>`;
+    el.innerHTML = h;
+  }
+
+  function busy() {
+    ['a1', 'a2'].forEach((s) => {
+      document.getElementById(s).innerHTML =
+        '<div class="agent__verdict is-wait"><span class="spinner"></span> Running</div>' +
+        '<div class="agent__detail">Transaction open against the live database…</div>';
+    });
+    verdict.innerHTML = '';
+  }
+
+  run.addEventListener('click', async () => {
+    busy();
+    run.disabled = true;
+    const body = new URLSearchParams({
+      flight_id: run.dataset.flight,
+      seat_id: run.dataset.seat,
+      lock: document.getElementById('mode').value,
+      hold_ms: document.getElementById('hold').value,
+    });
+    try {
+      const r = await fetch('{{ url_for("admin_lab_run") }}', { method: 'POST', body });
+      const d = await r.json();
+      paint('a1', d.agents[0]);
+      paint('a2', d.agents[1]);
+      const broke = d.holders.length !== 1;
+      verdict.innerHTML =
+        `<div class="verdict-bar ${broke ? 'is-broken' : ''}">
+           <b>${d.verdict}</b>
+           <div class="agent__timing" style="margin-top:6px">
+             seat ${d.seat_no} · mode: ${d.mode} · lock held ${d.hold_ms}ms
+           </div>
+           ${d.holders.map((h) =>
+             `<div class="agent__raw">holder → ${h.full_name} · PNR ${h.pnr} · ${h.ticket_no}</div>`
+           ).join('')}
+         </div>`;
+    } catch (e) {
+      verdict.innerHTML = `<div class="verdict-bar is-broken"><b>Request failed</b>
+        <div class="agent__raw">${e}</div></div>`;
+    }
+    run.disabled = false;
+  });
+
+  reset.addEventListener('click', async () => {
+    reset.disabled = true;
+    const r = await fetch('{{ url_for("admin_lab_reset") }}', { method: 'POST' });
+    const d = await r.json();
+    verdict.innerHTML = `<div class="verdict-bar">
+      <b>Released ${d.released} lab ticket${d.released === 1 ? '' : 's'}</b>
+      <div class="agent__timing" style="margin-top:6px">
+        seat_id set to NULL, status set to CANCELLED — the partial index frees the seat.
+        Reload to pick the next contested seat.
+      </div></div>`;
+    reset.disabled = false;
+    setTimeout(() => location.reload(), 1600);
+  });
+})();
+</script>
+{% endblock %}

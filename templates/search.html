@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}{{ origin or 'Flights' }}{% if dest %} → {{ dest }}{% endif %} · SkyBase{% endblock %}
+
+{% block body %}
+<section class="wrap" style="padding-top:28px">
+  <form class="slip" action="{{ url_for('search') }}" method="get">
+    <div class="slip__head">
+      <span class="tag tag--sodium">Flight search</span>
+      <span class="tag">{{ flights|length }} result{{ '' if flights|length == 1 else 's' }}</span>
+    </div>
+    <div class="slip__body">
+      <div class="slip__grid">
+        <label class="field field--mono">
+          <span>From</span>
+          <select class="input" name="origin" id="origin" required>
+            <option value="">Select</option>
+            {% for a in airports %}
+            <option value="{{ a.iata_code }}" {{ 'selected' if a.iata_code == origin }}>{{ a.iata_code }} — {{ a.city }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label class="field field--mono">
+          <span>To</span>
+          <select class="input" name="dest" id="dest" required>
+            <option value="">Select</option>
+            {% for a in airports %}
+            <option value="{{ a.iata_code }}" {{ 'selected' if a.iata_code == dest }}>{{ a.iata_code }} — {{ a.city }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label class="field field--mono">
+          <span>Date</span>
+          <input class="input" type="date" name="date" value="{{ when }}" min="{{ today }}" required>
+        </label>
+        <label class="field field--mono">
+          <span>Cabin</span>
+          <select class="input" name="cabin">
+            <option value="ECONOMY" {{ 'selected' if cabin == 'ECONOMY' }}>Economy</option>
+            <option value="BUSINESS" {{ 'selected' if cabin == 'BUSINESS' }}>Business</option>
+          </select>
+        </label>
+        <div class="field"><button class="btn btn--block">Search</button></div>
+      </div>
+    </div>
+  </form>
+</section>
+
+<section class="section wrap">
+  {% if not origin or not dest %}
+    <div class="empty"><b>Pick two airports</b>Three are in the database: HYD, BOM and DEL.</div>
+  {% elif not flights %}
+    <div class="empty">
+      <b>Nothing on {{ when }}</b>
+      No scheduled flight on {{ origin }} → {{ dest }} that day. Inventory runs ten days out.
+    </div>
+  {% else %}
+    <div class="section__head stack">
+      <div>
+        <h2>{{ origin }} → {{ dest }}</h2>
+        <p class="lede">{{ flights[0].from_city }} to {{ flights[0].to_city }} ·
+          {{ flights[0].distance_km }} km · {{ when }}</p>
+      </div>
+      <span class="pill pill--taxi push">{{ cabin|title }}</span>
+    </div>
+
+    <div class="rows">
+      {% for f in flights %}
+      <div class="result">
+        <div class="result__when">
+          <div>
+            <div class="result__time">{{ f.sched_dep|hhmm }}</div>
+            <div class="tag">{{ f.origin }}</div>
+          </div>
+          <div class="result__leg">
+            <div class="tag">{{ f.block_min|dur }}</div>
+            <div class="line"></div>
+            <div class="tag mono">{{ f.flight_no }}</div>
+          </div>
+          <div>
+            <div class="result__time">{{ f.sched_arr|hhmm }}</div>
+            <div class="tag">{{ f.destination }}</div>
+          </div>
+        </div>
+
+        <div class="stack">
+          <span class="pill">{{ f.model }}</span>
+          {% if f.cabin_free > 9 %}
+            <span class="pill pill--threshold">{{ f.cabin_free }} free</span>
+          {% elif f.cabin_free > 0 %}
+            <span class="pill pill--sodium">{{ f.cabin_free }} left</span>
+          {% else %}
+            <span class="pill pill--beacon">Cabin full</span>
+          {% endif %}
+        </div>
+
+        <div class="stack" style="justify-content:flex-end;gap:14px">
+          <div class="result__price">
+            <span class="muted mono" style="font-size:12px">₹</span>
+            <b>{{ (f.base_fare * 2.4) | round | int | rupees if cabin == 'BUSINESS' else f.base_fare|rupees }}</b>
+          </div>
+          {% if f.cabin_free > 0 %}
+          <a class="btn" href="{{ url_for('flight_detail', flight_id=f.flight_id, cabin=cabin, pax=pax) }}">Select</a>
+          {% else %}
+          <button class="btn" disabled>Full</button>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <details class="sqlbox">
+      <summary>The query behind these results</summary>
+      <pre>-- cabin_free is a correlated subquery: seats on this airframe, in this
+-- cabin, with no live ticket against them for this flight.
+SELECT f.flight_no, f.sched_dep, f.base_fare, av.seats_free,
+       (SELECT count(*) FROM seat s
+         WHERE s.aircraft_id = f.aircraft_id
+           AND s.cabin = '{{ cabin }}'
+           AND NOT EXISTS (SELECT 1 FROM ticket t
+                            WHERE t.seat_id   = s.seat_id
+                              AND t.flight_id = f.flight_id
+                              AND t.status   &lt;&gt; 'CANCELLED')) AS cabin_free
+  FROM flight f
+  JOIN route   r ON r.route_id   = f.route_id
+  JOIN airport o ON o.airport_id = r.origin_id
+  JOIN airport d ON d.airport_id = r.dest_id
+  JOIN v_seat_availability av ON av.flight_id = f.flight_id
+ WHERE o.iata_code = '{{ origin }}' AND d.iata_code = '{{ dest }}'
+   AND f.dep_date = '{{ when }}'
+   AND f.status IN ('SCHEDULED', 'DELAYED')
+ ORDER BY f.sched_dep;</pre>
+    </details>
+  {% endif %}
+</section>
+{% endblock %}

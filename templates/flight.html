@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}{{ flight.flight_no }} · {{ flight.origin }} → {{ flight.destination }}{% endblock %}
+
+{% block body %}
+<section class="wrap" style="padding-top:28px">
+  <div class="section__head stack">
+    <div>
+      <span class="tag tag--sodium">{{ flight.flight_no }} · {{ flight.sched_dep|daymon }}</span>
+      <h2 style="margin-top:6px">{{ flight.origin }} → {{ flight.destination }}</h2>
+      <p class="lede">{{ flight.from_name }} to {{ flight.to_name }} ·
+        {{ flight.sched_dep|hhmm }}–{{ flight.sched_arr|hhmm }} ·
+        {{ flight.block_min|dur }} · {{ flight.model }} ({{ flight.tail_number }})</p>
+    </div>
+    <div class="stack push">
+      {% if flight.gate %}<span class="pill">Gate {{ flight.gate }}</span>{% endif %}
+      <span class="pill pill--taxi">{{ cabin|title }}</span>
+    </div>
+  </div>
+
+  <div class="grid" style="grid-template-columns:1fr;gap:16px">
+    <div class="cabin" id="cabin" data-pax="{{ pax }}" data-fare="{{ unit_fare }}">
+      <div class="cabin__frame">
+      <div class="cabin__nose"></div>
+      <div class="cabin__rows">
+        {% for row_no, seats in rows %}
+        {% set exit = seats[0].is_exit_row %}
+        <div class="seatrow {{ 'is-exit' if exit }}">
+          <span class="seatrow__no">{{ row_no }}</span>
+          {% for s in seats %}
+            {# aisle after C on a 3+3 row, after A/C on a 2+2 row #}
+            {% if (seats|length == 6 and loop.index == 4) or (seats|length == 4 and loop.index == 3) %}
+              <span class="seatrow__aisle"></span>
+            {% endif %}
+            <button type="button"
+                    class="seat {{ 'is-taken' if s.taken }}"
+                    data-cabin="{{ s.cabin }}"
+                    data-id="{{ s.seat_id }}"
+                    data-no="{{ s.seat_no }}"
+                    title="{{ s.seat_no }} · {{ s.cabin|title }}{{ ' · exit row' if s.is_exit_row }}{{ ' · taken' if s.taken }}"
+                    {{ 'disabled' if s.taken or s.cabin != cabin }}>{{ s.col }}</button>
+          {% endfor %}
+          {% if exit %}<span class="tag tag--threshold" style="margin-left:8px">EXIT</span>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      </div>
+
+      <div class="cabin__key">
+        <span><i></i>Available</span>
+        <span><i class="k-picked"></i>Yours</span>
+        <span><i class="k-taken"></i>Sold</span>
+        <span><i class="k-biz"></i>Business</span>
+        <span class="tag tag--threshold">EXIT = exit row</span>
+      </div>
+    </div>
+
+    <form method="post" action="{{ url_for('book', flight_id=flight.flight_id) }}" class="slip">
+      <div class="slip__head">
+        <span class="tag tag--sodium">Issue tickets</span>
+        <span class="tag">up to {{ pax }} seat{{ '' if pax == 1 else 's' }}</span>
+      </div>
+      <div class="slip__body">
+        <input type="hidden" name="cabin" value="{{ cabin }}">
+        <div id="seatinputs"></div>
+
+        <div class="pass__fields" style="margin-bottom:16px">
+          <div class="pf"><span>Passenger</span><b style="font-size:13px">{{ me.full_name }}</b></div>
+          <div class="pf"><span>Seats held</span><b id="picked" style="font-size:13px;color:var(--sodium)">none yet</b></div>
+          <div class="pf"><span>Fare each</span><b style="font-size:13px">₹{{ unit_fare|rupees }}</b></div>
+          <div class="pf"><span>Total</span><b id="total" style="color:var(--sodium)">₹0</b></div>
+        </div>
+
+        <label class="field field--mono" style="max-width:220px">
+          <span>Pay with</span>
+          <select class="input" name="method">
+            <option value="CARD">Card</option>
+            <option value="UPI">UPI</option>
+            <option value="NETBANKING">Net banking</option>
+          </select>
+        </label>
+
+        <button class="btn btn--block" id="go" type="submit" disabled>Pick a seat</button>
+        <p class="tag" style="margin-top:10px;text-align:center">
+          Booking, tickets and payment commit in one transaction
+        </p>
+      </div>
+    </form>
+  </div>
+
+  <details class="sqlbox">
+    <summary>What happens when you press pay</summary>
+    <pre>BEGIN;
+
+-- 1 · take an exclusive row lock on the chosen seats. ORDER BY seat_id so
+--     two multi-seat bookings can never deadlock against each other.
+SELECT seat_id FROM seat WHERE seat_id = ANY(%s) ORDER BY seat_id FOR UPDATE;
+
+-- 2 · still free? a second agent now blocks on the line above instead of
+--     reading a stale "seat is free"
+SELECT s.seat_no FROM ticket t JOIN seat s USING (seat_id)
+ WHERE t.flight_id = %s AND t.seat_id = ANY(%s) AND t.status &lt;&gt; 'CANCELLED';
+
+-- 3 · the booking, 4 · the tickets, 5 · the payment
+INSERT INTO booking (pnr, passenger_id)                  VALUES (...);
+INSERT INTO ticket  (ticket_no, booking_id, flight_id,
+                     passenger_id, seat_id, cabin, fare_paid) VALUES (...);
+INSERT INTO payment (booking_id, txn_ref, amount, method)  VALUES (...);
+
+COMMIT;   -- all five, or none of them
+
+-- and behind all of it, the backstop that holds even without the lock:
+--   CREATE UNIQUE INDEX uq_ticket_seat_per_flight
+--       ON ticket (flight_id, seat_id) WHERE seat_id IS NOT NULL;</pre>
+  </details>
+</section>
+{% endblock %}

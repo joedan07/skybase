@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Airline Reservation &amp; Flight Operations DBMS — Review 1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#04080f; --panel:#0a1626; --panel2:#0d1c30;
+  --line:rgba(120,160,210,.15); --line2:rgba(120,160,210,.30);
+  --ink:#e9f0fa; --ink2:#a4b9d3; --ink3:#6b83a1;
+  --gold:#e8b44a; --gold2:#ffd98a; --sky:#4aa8ff; --sky2:#8fcbff;
+  --jade:#6ee08a; --rose:#ff7a86; --violet:#b58ce0;
+  --mono:'JetBrains Mono',ui-monospace,Menlo,monospace;
+  --sans:'Inter',system-ui,-apple-system,sans-serif;
+  --mx:1180px; --r:14px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:76px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+  font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+::selection{background:rgba(232,180,74,.3)}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:#050a13}
+::-webkit-scrollbar-thumb{background:#1d3352;border-radius:8px;border:2px solid #050a13}
+
+/* ---------- animated background ---------- */
+#bg{position:fixed;inset:0;z-index:0;display:block;pointer-events:none}
+.veil{position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:radial-gradient(ellipse 120% 70% at 50% -10%,rgba(74,168,255,.10),transparent 60%),
+             radial-gradient(ellipse 90% 60% at 85% 40%,rgba(232,180,74,.07),transparent 60%)}
+.hint{position:fixed;left:16px;bottom:14px;z-index:40;font-family:var(--mono);font-size:9px;
+  letter-spacing:.16em;color:#3b5170;pointer-events:none;transition:opacity .6s}
+
+/* ---------- nav ---------- */
+.strip{position:fixed;top:0;left:0;right:0;z-index:60;background:rgba(4,8,15,.78);
+  backdrop-filter:blur(16px) saturate(150%);border-bottom:1px solid var(--line)}
+.si{max-width:var(--mx);margin:0 auto;padding:9px 20px;display:flex;align-items:center;gap:14px}
+.brand{display:flex;align-items:center;gap:9px;text-decoration:none;color:inherit;flex-shrink:0}
+.brand i{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;
+  background:linear-gradient(150deg,var(--gold),#b8892c);box-shadow:0 3px 12px rgba(232,180,74,.3)}
+.brand svg{width:16px;height:16px;fill:#0a1220}
+.brand b{font-family:var(--mono);font-size:11.5px;letter-spacing:.14em}
+.nl{display:flex;gap:1px;overflow-x:auto;scrollbar-width:none;flex:1}
+.nl::-webkit-scrollbar{display:none}
+.nl a{font-family:var(--mono);font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--ink3);text-decoration:none;padding:6px 8px;border-radius:6px;white-space:nowrap;transition:.2s}
+.nl a:hover{color:var(--ink);background:rgba(120,170,230,.08)}
+.nl a.on{color:var(--gold);background:rgba(232,180,74,.10)}
+.badge{font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--jade);
+  border:1px solid rgba(110,224,138,.3);padding:4px 9px;border-radius:99px;white-space:nowrap}
+.badge i{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--jade);
+  margin-right:5px;vertical-align:middle;animation:blip 1.8s infinite}
+@keyframes blip{0%,100%{opacity:1}50%{opacity:.35}}
+.runway{position:absolute;bottom:-1px;left:0;height:2px;width:0;
+  background:linear-gradient(90deg,var(--sky),var(--gold));box-shadow:0 0 10px rgba(232,180,74,.6)}
+
+/* ---------- layout ---------- */
+.wrap{position:relative;z-index:2;max-width:var(--mx);margin:0 auto;padding:0 20px}
+section{padding:52px 0;scroll-margin-top:74px}
+.kick{font-family:var(--mono);font-size:9.5px;letter-spacing:.28em;text-transform:uppercase;
+  color:var(--gold);display:flex;align-items:center;gap:9px;margin-bottom:9px}
+.kick::before{content:"";width:20px;height:1px;background:linear-gradient(90deg,var(--gold),transparent)}
+h2{font-size:clamp(23px,3.4vw,31px);font-weight:750;letter-spacing:-.015em;line-height:1.12;margin:0 0 8px}
+h2 em{font-style:normal;color:var(--gold)}
+.lede{color:var(--ink2);max-width:86ch;font-size:14.5px;margin:0 0 24px}
+h3{font-size:14px;margin:0 0 7px;font-weight:650;letter-spacing:-.005em}
+.g{display:grid;gap:12px}
+.g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+
+.card{background:linear-gradient(160deg,rgba(13,28,48,.86),rgba(7,15,27,.86));
+  border:1px solid var(--line);border-radius:var(--r);padding:16px 17px;position:relative;
+  overflow:hidden;transition:transform .3s cubic-bezier(.2,.9,.3,1),border-color .3s;backdrop-filter:blur(3px)}
+.card:hover{transform:translateY(-3px);border-color:var(--line2)}
+.card .no{font-family:var(--mono);font-size:9px;letter-spacing:.16em;color:var(--gold);margin-bottom:7px}
+.card p{margin:0;color:var(--ink2);font-size:13px}
+.bar{position:absolute;left:0;top:0;bottom:0;width:2px}
+
+.call{border:1px solid rgba(232,180,74,.3);border-radius:var(--r);padding:16px 20px;
+  background:linear-gradient(120deg,rgba(232,180,74,.08),rgba(232,180,74,.015));backdrop-filter:blur(3px)}
+.call b{color:var(--gold2)}
+.call.j{border-color:rgba(110,224,138,.3);background:linear-gradient(120deg,rgba(110,224,138,.07),transparent)}
+.call.j b{color:var(--jade)}
+
+/* lists */
+.lst{margin:0;padding:0;list-style:none}
+.lst li{position:relative;padding:4px 0 4px 19px;font-size:13.2px;color:var(--ink2)}
+.lst li::before{position:absolute;left:0;top:4px;font-family:var(--mono);font-size:11px}
+.li-in li::before{content:"✚";color:var(--jade)}
+.li-out li::before{content:"✕";color:var(--rose)}
+.li-ob li::before{content:"▸";color:var(--gold)}
+.hd{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;margin-bottom:8px}
+
+/* tables */
+.tw{border:1px solid var(--line);border-radius:var(--r);overflow:auto;background:rgba(6,12,22,.72);
+  backdrop-filter:blur(3px)}
+table{width:100%;border-collapse:collapse;min-width:620px}
+th{font-family:var(--mono);font-size:8.8px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);
+  text-align:left;padding:10px 12px;background:rgba(232,180,74,.06);border-bottom:1px solid var(--line2);
+  white-space:nowrap}
+td{padding:8px 12px;font-size:12.8px;color:var(--ink2);border-bottom:1px solid rgba(120,160,210,.08);
+  vertical-align:top}
+tbody tr{transition:background .18s}
+tbody tr:hover{background:rgba(74,168,255,.05)}
+tbody tr:last-child td{border-bottom:0}
+td b{color:var(--ink);font-weight:600}
+code{font-family:var(--mono);font-size:11.4px;color:var(--sky2);background:rgba(74,168,255,.09);
+  padding:1px 5px;border-radius:4px;white-space:nowrap}
+.tag{font-family:var(--mono);font-size:8.8px;letter-spacing:.09em;text-transform:uppercase;
+  padding:2px 7px;border-radius:4px;white-space:nowrap;display:inline-block}
+.t-col{background:rgba(110,224,138,.13);color:var(--jade);border:1px solid rgba(110,224,138,.26)}
+.t-tab{background:rgba(74,168,255,.13);color:var(--sky2);border:1px solid rgba(74,168,255,.26)}
+.t-ref{background:rgba(181,140,224,.13);color:var(--violet);border:1px solid rgba(181,140,224,.26)}
+.t-trg{background:rgba(232,180,74,.13);color:var(--gold2);border:1px solid rgba(232,180,74,.26)}
+.t-txn{background:rgba(255,122,134,.13);color:var(--rose);border:1px solid rgba(255,122,134,.26)}
+
+/* hero */
+.hero{min-height:88vh;display:flex;align-items:center;padding:96px 0 40px}
+.hero h1{font-size:clamp(34px,6.2vw,62px);font-weight:800;line-height:1.02;letter-spacing:-.028em;margin:0 0 16px}
+.hero h1 span{color:var(--gold)}
+.hero .sub{color:var(--ink2);font-size:16px;max-width:62ch;margin:0 0 22px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:26px}
+.chip{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;
+  border:1px solid var(--line2);border-radius:99px;padding:5px 11px;color:var(--ink2);transition:.25s}
+.chip:hover{border-color:var(--gold);color:var(--gold2);transform:translateY(-2px)}
+.stats{display:flex;gap:26px;flex-wrap:wrap}
+.stat b{font-size:27px;color:var(--gold);line-height:1;display:block;font-weight:750}
+.stat span{font-family:var(--mono);font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink3)}
+
+/* ER */
+.erw{border:1px solid var(--line2);border-radius:var(--r);overflow:hidden;
+  background:radial-gradient(ellipse at 50% 0%,rgba(18,36,64,.75),rgba(5,10,20,.92))}
+.erb{display:flex;align-items:center;gap:7px;padding:9px 12px;border-bottom:1px solid var(--line);
+  background:rgba(4,9,18,.7);flex-wrap:wrap}
+.erb .l{font-family:var(--mono);font-size:9px;letter-spacing:.16em;color:var(--ink3);margin-right:auto}
+.zb{height:27px;min-width:27px;padding:0 9px;border-radius:7px;border:1px solid var(--line2);
+  background:rgba(255,255,255,.03);color:var(--ink2);cursor:pointer;font-size:13px;transition:.2s;
+  display:grid;place-items:center;font-family:var(--mono)}
+.zb:hover{border-color:var(--gold);color:var(--gold)}
+.zb.w{font-size:9px;letter-spacing:.12em}
+.vp{height:min(66vh,620px);overflow:hidden;cursor:grab}
+.vp.dr{cursor:grabbing}
+.cv{transform-origin:0 0;transition:transform .12s ease-out;padding:12px}
+.er{width:1690px;display:block}
+.er .ebox{filter:drop-shadow(0 6px 14px rgba(0,0,0,.5))}
+.er .et{font-size:12.5px;font-weight:700;letter-spacing:.07em;font-family:var(--sans)}
+.er text{font-size:11px;fill:#c3d2e8;font-family:var(--mono)}
+.er .bdg{font-size:8px;font-weight:700;letter-spacing:.08em}
+.er .pk{fill:var(--gold)}.er .fk{fill:#7fb3f0}.er .uq{fill:var(--violet)}.er .at{fill:#9db0ca}
+.er .link{fill:none;stroke:#5c7899;stroke-width:1.6}
+.er .link.dash{stroke-dasharray:5 4;stroke:#4c6480}
+.er .foot{fill:none;stroke:#93b4d8;stroke-width:1.7}
+.er .rl{font-size:10px;fill:#90a8c6;font-style:italic;font-family:var(--sans)}
+.lg{display:flex;flex-wrap:wrap;gap:6px 18px;padding:10px 12px;border-top:1px solid var(--line);
+  background:rgba(4,9,18,.6);font-family:var(--mono);font-size:9px;letter-spacing:.05em;color:var(--ink3)}
+.lg span{display:flex;align-items:center;gap:6px}
+.lg svg{width:30px;height:13px;overflow:visible}.lg .lk{fill:none;stroke:#93b4d8;stroke-width:1.6}
+
+/* RBAC explorer */
+.rbac{display:grid;grid-template-columns:1fr 300px;gap:14px;align-items:start}
+.roles{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.rb{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;
+  border:1px solid var(--line2);background:rgba(255,255,255,.02);color:var(--ink2);
+  padding:6px 12px;border-radius:99px;cursor:pointer;transition:.22s}
+.rb:hover{border-color:var(--sky);color:var(--sky2)}
+.rb.on{background:var(--gold);border-color:var(--gold);color:#0a1220;font-weight:700}
+.mx td.c{text-align:center;font-family:var(--mono);font-size:10.5px}
+.mx tr.dim{opacity:.22}
+.mx tr.hl{background:rgba(232,180,74,.09)!important}
+.app{border:1px solid var(--line2);border-radius:var(--r);overflow:hidden;background:rgba(8,16,29,.85);
+  backdrop-filter:blur(4px);position:sticky;top:78px}
+.app .tbar{display:flex;align-items:center;gap:5px;padding:8px 11px;background:rgba(255,255,255,.03);
+  border-bottom:1px solid var(--line)}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.app .who{font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--gold);margin-left:6px}
+.app .body{padding:11px}
+.nav-i{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:8px;margin-bottom:3px;
+  font-size:12.4px;transition:.25s;border:1px solid transparent}
+.nav-i .ic{font-size:12px;width:16px;text-align:center}
+.nav-i.ok{color:var(--ink);background:rgba(110,224,138,.09);border-color:rgba(110,224,138,.22)}
+.nav-i.ok .ic{color:var(--jade)}
+.nav-i.no{color:#3d5069;text-decoration:line-through;text-decoration-color:#2a3a52}
+.nav-i.no .ic{opacity:.3}
+.app .foot{padding:9px 11px;border-top:1px solid var(--line);font-family:var(--mono);
+  font-size:8.5px;letter-spacing:.06em;color:var(--ink3);line-height:1.6}
+
+/* relations */
+.rel{border:1px solid var(--line);border-radius:11px;overflow:hidden;background:rgba(7,14,26,.8);
+  transition:.25s;backdrop-filter:blur(3px)}
+.rel:hover{border-color:rgba(232,180,74,.32);transform:translateY(-2px)}
+.rel h4{margin:0;padding:8px 11px;font-family:var(--mono);font-size:10px;letter-spacing:.11em;
+  color:var(--gold);background:rgba(232,180,74,.07);border-bottom:1px solid var(--line)}
+.rel ul{margin:0;padding:7px 0;list-style:none}
+.rel li{padding:2px 11px;font-family:var(--mono);font-size:10.2px;color:var(--ink2)}
+.rel li em{font-style:normal;font-size:7.5px;letter-spacing:.07em;font-weight:700;margin-right:5px}
+.rel li em.p{color:var(--gold)}.rel li em.f{color:var(--sky)}.rel li em.u{color:var(--violet)}
+
+/* NF chips */
+.nf{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
+.nfc{border:1px solid var(--line);border-radius:11px;padding:13px 15px;background:rgba(8,16,29,.7);
+  position:relative;overflow:hidden;backdrop-filter:blur(3px)}
+.nfc .s{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.1em;margin-bottom:6px}
+.nfc .fd{font-family:var(--mono);font-size:10.4px;color:var(--sky2);margin-bottom:7px;line-height:1.5}
+.nfc .fx{font-size:11.8px;color:var(--jade)}
+
+/* concurrency */
+.txn{display:grid;grid-template-columns:1fr 40px 1fr;border:1px solid var(--line);
+  border-radius:var(--r);overflow:hidden;background:rgba(6,12,22,.8);backdrop-filter:blur(3px)}
+.txn .h{padding:9px 13px;font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;
+  border-bottom:1px solid var(--line2);background:rgba(255,255,255,.028)}
+.txn .h.a{color:var(--sky2)}.txn .h.b{color:var(--gold)}
+.txn .h.t{color:var(--ink3);text-align:center;padding:9px 3px}
+.txn .c{padding:8px 13px;font-family:var(--mono);font-size:11px;min-height:38px;
+  border-bottom:1px solid rgba(120,160,210,.08);color:var(--ink3);transition:.35s;display:flex;align-items:center}
+.txn .c.t{justify-content:center;font-size:9px;color:#41597a;background:rgba(255,255,255,.02);padding:8px 2px}
+.txn .c.live{color:var(--ink);background:rgba(74,168,255,.10)}
+.txn .c.b.live{background:rgba(232,180,74,.09)}
+.txn .c.fail.live{background:rgba(255,122,134,.13);color:var(--rose)}
+.txn .c.ok.live{background:rgba(110,224,138,.12);color:var(--jade)}
+.pbar{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.pl{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;background:var(--gold);
+  border:0;color:#0a1220;font-weight:700;padding:8px 16px;border-radius:99px;cursor:pointer;transition:.22s}
+.pl:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(232,180,74,.32)}
+.pl.gh{background:transparent;border:1px solid var(--line2);color:var(--ink2);font-weight:500;box-shadow:none}
+.pl.gh:hover{border-color:var(--sky);color:var(--sky2)}
+.narr{font-family:var(--mono);font-size:10.5px;color:var(--ink2);flex:1;min-width:190px}
+
+/* reveal */
+.rv{opacity:0;transform:translateY(18px);transition:opacity .6s cubic-bezier(.2,.8,.3,1),transform .6s cubic-bezier(.2,.8,.3,1)}
+.rv.in{opacity:1;transform:none}
+footer{border-top:1px solid var(--line);margin-top:28px;padding:22px 0 40px;position:relative;z-index:2}
+.fin{max-width:var(--mx);margin:0 auto;padding:0 20px;display:flex;justify-content:space-between;gap:16px;
+  flex-wrap:wrap;font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--ink3);text-transform:uppercase}
+
+@media (prefers-reduced-motion:reduce){.rv{opacity:1;transform:none;transition:none}
+  *{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+@media(max-width:980px){.g3,.g4,.nf{grid-template-columns:1fr 1fr}.rbac{grid-template-columns:1fr}
+  .app{position:static}}
+@media(max-width:660px){.g2,.g3,.g4,.nf{grid-template-columns:1fr}
+  .txn{grid-template-columns:1fr}.txn .h.t,.txn .c.t{display:none}section{padding:40px 0}}
+</style>
+</head>
+<body>
+
+<canvas id="bg"></canvas>
+<div class="veil"></div>
+<div class="hint" id="hint">MOVE TO STEER · CLICK TO LAUNCH A FLIGHT</div>
+
+<header class="strip">
+  <div class="si">
+    <a class="brand" href="#top">
+      <i><svg viewBox="0 0 24 24"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg></i>
+      <b>SKYBASE</b></a>
+    <nav class="nl" id="nav">
+      <a href="#problem">Problem</a><a href="#scope">Scope</a><a href="#rbac">Users · RBAC</a>
+      <a href="#er">ER Diagram</a><a href="#card">Cardinality</a><a href="#schema">3NF Schema</a>
+      <a href="#rules">Rules</a><a href="#conc">Concurrency</a><a href="#next">Next</a>
+    </nav>
+    <span class="badge"><i></i>REVIEW 1 · WK 7</span>
+  </div>
+  <div class="runway" id="runway"></div>
+</header>
+
+<main class="wrap" id="top">
+
+<!-- HERO -->
+<section class="hero">
+  <div>
+    <div class="kick">DBMS · Project-Based Learning · Project 18 of 70</div>
+    <h1>Airline Reservation<br><span>Database</span></h1>
+    <p class="sub">A normalised relational database for airline reservation and flight operations —
+      and the <b>role-based web application</b> that will sit on top of it. Nineteen relations in 3NF,
+      designed so two agents can never sell the same seat.</p>
+    <div class="chips">
+      <span class="chip">19 Relations</span><span class="chip">24 Relationships</span>
+      <span class="chip">3NF / BCNF</span><span class="chip">RBAC</span>
+      <span class="chip">8 Reports</span><span class="chip">PostgreSQL · Flask</span>
+    </div>
+    <div class="stats">
+      <div class="stat"><b data-c="19">0</b><span>Relations</span></div>
+      <div class="stat"><b data-c="24">0</b><span>Relationships</span></div>
+      <div class="stat"><b data-c="5">0</b><span>Associative</span></div>
+      <div class="stat"><b data-c="14">0</b><span>Business rules</span></div>
+      <div class="stat"><b data-c="7">0</b><span>Roles</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- PROBLEM -->
+<section id="problem">
+  <div class="rv">
+    <div class="kick">01 · Problem</div>
+    <h2>The problem, in <em>one line</em></h2>
+    <p class="lede">An airline runs on one shared fact — <b>who is on which seat of which flight</b>.
+      Today it lives in four disconnected files, so nothing agrees with anything else.</p>
+  </div>
+  <div class="g g4 rv" style="margin-bottom:14px">
+    <div class="card"><span class="bar" style="background:var(--rose)"></span><div class="no">P-01</div>
+      <h3>Duplicate seat allocation</h3><p>Two counters sell 14A. Discovered at the gate.</p></div>
+    <div class="card"><span class="bar" style="background:var(--gold)"></span><div class="no">P-02</div>
+      <h3>Manifests that disagree</h3><p>Ticketed, boarded and bag lists never reconcile in time.</p></div>
+    <div class="card"><span class="bar" style="background:var(--rose)"></span><div class="no">P-03</div>
+      <h3>Orphaned baggage</h3><p>A bag tag with no traceable passenger behind it.</p></div>
+    <div class="card"><span class="bar" style="background:var(--gold)"></span><div class="no">P-04</div>
+      <h3>Redundancy &amp; anomalies</h3><p>Aircraft model and city retyped onto every booking row.</p></div>
+  </div>
+  <div class="call rv"><b>Problem statement.</b> Design a normalised relational database that holds
+    airports, routes, aircraft, seats, flights, fares, passengers, bookings, tickets, check-ins, baggage,
+    cancellations and payments as a single authoritative record; enforces the airline's rules inside the
+    database; stays correct when two agents book the same seat at the same instant; and serves a
+    role-based web application.</div>
+</section>
+
+<!-- SCOPE -->
+<section id="scope">
+  <div class="rv">
+    <div class="kick">02 · Scope &amp; objectives</div>
+    <h2>What is in, what is <em>out, and why</em></h2>
+  </div>
+  <div class="g g3 rv">
+    <div class="card"><div class="hd" style="color:var(--jade)">◤ In scope</div>
+      <ul class="lst li-in">
+        <li>Airports, routes, aircraft types and fleet</li>
+        <li>Seat maps, flights, gates, actual times</li>
+        <li>Fares per flight per cabin class</li>
+        <li>Passengers, bookings (PNR), tickets, seats</li>
+        <li>Check-in, boarding pass, baggage</li>
+        <li>Cancellation, refund, payment</li>
+        <li>RBAC: roles, permissions, role dashboards</li>
+        <li>Eight SQL reports as views</li>
+      </ul></div>
+    <div class="card"><div class="hd" style="color:var(--rose)">◤ Out of scope</div>
+      <ul class="lst li-out">
+        <li>GDS / IATA interlining and codeshare</li>
+        <li>Dynamic revenue management</li>
+        <li>Crew rostering and duty-time legality</li>
+        <li>Frequent-flyer accrual and redemption</li>
+        <li>Cargo, maintenance (MRO), load sheets</li>
+        <li>Live payment-gateway authorisation</li>
+        <li>Airport slots and ATC integration</li>
+      </ul></div>
+    <div class="card"><div class="hd" style="color:var(--gold)">◤ Objectives</div>
+      <ul class="lst li-ob">
+        <li>Model all thirteen named entities in a crow's-foot ERD</li>
+        <li>Normalise to 3NF, showing the FD that forced each split</li>
+        <li>Push each rule to the lowest layer that can enforce it</li>
+        <li>Guarantee one seat, one passenger under concurrency</li>
+        <li>Enforce least privilege through RBAC, not hidden buttons</li>
+        <li>Answer the operational day in SQL, not a manual merge</li>
+        <li>Index what is actually searched, and justify it</li>
+      </ul></div>
+  </div>
+</section>
+
+<!-- RBAC -->
+<section id="rbac">
+  <div class="rv">
+    <div class="kick">03 · Users &amp; RBAC</div>
+    <h2>Seven roles, <em>seven dashboards</em></h2>
+    <p class="lede">The web app has one section per role. Access is <b>data, not code</b>:
+      <code>APP_USER → ROLE → ROLE_PERMISSION → PERMISSION</code>. Pick a role to see the app it gets.</p>
+  </div>
+  <div class="roles rv" id="roles"></div>
+  <div class="rbac rv">
+    <div class="tw"><table class="mx" id="mx">
+      <thead><tr><th>Role</th><th>Lands on</th><th>Flights<br>&amp; fares</th><th>Passengers</th>
+        <th>Bookings<br>/ tickets</th><th>Seats</th><th>Check-in<br>/ bags</th><th>Cancel<br>/ refund</th>
+        <th>Payments</th><th>Reports</th></tr></thead>
+      <tbody id="mxb"></tbody></table></div>
+    <div class="app">
+      <div class="tbar">
+        <span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span>
+        <span class="dot" style="background:#28c840"></span>
+        <span class="who" id="who">SIGNED IN AS — RESERVATION AGENT</span>
+      </div>
+      <div class="body" id="appnav"></div>
+      <div class="foot" id="appfoot"></div>
+    </div>
+  </div>
+  <div class="g g4 rv" style="margin-top:14px">
+    <div class="card"><span class="bar" style="background:var(--jade)"></span><div class="no">Database layer</div>
+      <p>GRANTs issued on views per database role.</p></div>
+    <div class="card"><span class="bar" style="background:var(--sky)"></span><div class="no">Application layer</div>
+      <p>Route guard reads <code>ROLE_PERMISSION</code> on login and renders only permitted sections.</p></div>
+    <div class="card"><span class="bar" style="background:var(--violet)"></span><div class="no">Row layer</div>
+      <p><code>passenger_id = current_user_passenger()</code> inside a security view.</p></div>
+    <div class="card"><span class="bar" style="background:var(--gold)"></span><div class="no">Audit</div>
+      <p><code>created_by</code> / <code>processed_by</code> on every write.</p></div>
+  </div>
+</section>
+
+<!-- ER -->
+<section id="er">
+  <div class="rv">
+    <div class="kick">04 · Conceptual design</div>
+    <h2>Entity–Relationship <em>Diagram</em></h2>
+    <p class="lede">Crow's-foot notation · 19 entities · 24 relationships. <b>TICKET</b> (green) is the hub;
+      <b>ROLE_PERMISSION</b> (green, right) is the RBAC grid the app reads on every request.
+      Drag to pan, use the controls to zoom.</p>
+  </div>
+  <div class="erw rv">
+    <div class="erb">
+      <span class="l">ERD · AIRLINE RESERVATION &amp; FLIGHT OPERATIONS · v1.1</span>
+      <button class="zb" id="zo">−</button><button class="zb" id="zi">+</button>
+      <button class="zb w" id="zf">FIT</button><button class="zb w" id="zr">100%</button>
+    </div>
+    <div class="vp" id="vp"><div class="cv" id="cvv">
+<svg class="er" viewBox="0 0 1690 1170" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Entity relationship diagram for the airline reservation database">
+<defs>
+<linearGradient id="gb" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#12203c"/><stop offset="1" stop-color="#0c1729"/></linearGradient>
+<linearGradient id="gc" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#1b2c4d" stop-opacity=".95"/><stop offset="1" stop-color="#0e1b31"/></linearGradient>
+<linearGradient id="gg" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#26351f"/><stop offset="1" stop-color="#131d16"/></linearGradient>
+<linearGradient id="gv" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#241b34"/><stop offset="1" stop-color="#150f20"/></linearGradient>
+</defs>
+<g class="ent">
+<rect class="ebox" x="30" y="40" width="250" height="153.0" rx="10" fill="url(#gb)" stroke="#4aa8ff"/>
+<path d="M30,70 h250" stroke="#4aa8ff" stroke-opacity=".55" stroke-width="1"/>
+<rect x="30" y="40" width="250" height="30" rx="10" fill="#4aa8ff" fill-opacity=".13"/>
+<text class="et" x="42" y="60" fill="#4aa8ff">AIRPORT</text>
+<text class="bdg pk" x="42" y="90">PK</text>
+<text class="pk" x="70" y="90">airport_id</text>
+<text class="bdg uq" x="42" y="107.5">AK</text>
+<text class="uq" x="70" y="107.5">iata_code</text>
+<text class="bdg uq" x="42" y="125.0">AK</text>
+<text class="uq" x="70" y="125.0">icao_code</text>
+<text class="at" x="70" y="142.5">airport_name</text>
+<text class="at" x="70" y="160.0">city / country</text>
+<text class="at" x="70" y="177.5">tz_offset</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="330" y="40" width="250" height="135.5" rx="10" fill="url(#gb)" stroke="#4aa8ff"/>
+<path d="M330,70 h250" stroke="#4aa8ff" stroke-opacity=".55" stroke-width="1"/>
+<rect x="330" y="40" width="250" height="30" rx="10" fill="#4aa8ff" fill-opacity=".13"/>
+<text class="et" x="342" y="60" fill="#4aa8ff">ROUTE</text>
+<text class="bdg pk" x="342" y="90">PK</text>
+<text class="pk" x="370" y="90">route_id</text>
+<text class="bdg fk" x="342" y="107.5">FK</text>
+<text class="fk" x="370" y="107.5">origin_airport_id</text>
+<text class="bdg fk" x="342" y="125.0">FK</text>
+<text class="fk" x="370" y="125.0">dest_airport_id</text>
+<text class="at" x="370" y="142.5">distance_km</text>
+<text class="at" x="370" y="160.0">block_time_min</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="700" y="40" width="250" height="188.0" rx="10" fill="url(#gc)" stroke="#e8b44a"/>
+<path d="M700,70 h250" stroke="#e8b44a" stroke-opacity=".55" stroke-width="1"/>
+<rect x="700" y="40" width="250" height="30" rx="10" fill="#e8b44a" fill-opacity=".13"/>
+<text class="et" x="712" y="60" fill="#e8b44a">FLIGHT</text>
+<text class="bdg pk" x="712" y="90">PK</text>
+<text class="pk" x="740" y="90">flight_id</text>
+<text class="bdg uq" x="712" y="107.5">AK</text>
+<text class="uq" x="740" y="107.5">flight_no + dep_date</text>
+<text class="bdg fk" x="712" y="125.0">FK</text>
+<text class="fk" x="740" y="125.0">route_id</text>
+<text class="bdg fk" x="712" y="142.5">FK</text>
+<text class="fk" x="740" y="142.5">aircraft_id</text>
+<text class="at" x="740" y="160.0">sched_dep_ts / sched_arr_ts</text>
+<text class="at" x="740" y="177.5">actual_dep_ts / actual_arr_ts</text>
+<text class="at" x="740" y="195.0">gate_no</text>
+<text class="at" x="740" y="212.5">flight_status</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="1070" y="40" width="250" height="135.5" rx="10" fill="url(#gb)" stroke="#4aa8ff"/>
+<path d="M1070,70 h250" stroke="#4aa8ff" stroke-opacity=".55" stroke-width="1"/>
+<rect x="1070" y="40" width="250" height="30" rx="10" fill="#4aa8ff" fill-opacity=".13"/>
+<text class="et" x="1082" y="60" fill="#4aa8ff">AIRCRAFT</text>
+<text class="bdg pk" x="1082" y="90">PK</text>
+<text class="pk" x="1110" y="90">aircraft_id</text>
+<text class="bdg uq" x="1082" y="107.5">AK</text>
+<text class="uq" x="1110" y="107.5">tail_number</text>
+<text class="bdg fk" x="1082" y="125.0">FK</text>
+<text class="fk" x="1110" y="125.0">type_id</text>
+<text class="at" x="1110" y="142.5">year_of_mfr</text>
+<text class="at" x="1110" y="160.0">ac_status</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="1400" y="40" width="250" height="118.0" rx="10" fill="url(#gb)" stroke="#4aa8ff"/>
+<path d="M1400,70 h250" stroke="#4aa8ff" stroke-opacity=".55" stroke-width="1"/>
+<rect x="1400" y="40" width="250" height="30" rx="10" fill="#4aa8ff" fill-opacity=".13"/>
+<text class="et" x="1412" y="60" fill="#4aa8ff">AIRCRAFT_TYPE</text>
+<text class="bdg pk" x="1412" y="90">PK</text>
+<text class="pk" x="1440" y="90">type_id</text>
+<text class="bdg uq" x="1412" y="107.5">AK</text>
+<text class="uq" x="1440" y="107.5">model_code</text>
+<text class="at" x="1440" y="125.0">manufacturer</text>
+<text class="at" x="1440" y="142.5">total_capacity</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="700" y="300" width="250" height="170.5" rx="10" fill="url(#gc)" stroke="#e8b44a"/>
+<path d="M700,330 h250" stroke="#e8b44a" stroke-opacity=".55" stroke-width="1"/>
+<rect x="700" y="300" width="250" height="30" rx="10" fill="#e8b44a" fill-opacity=".13"/>
+<text class="et" x="712" y="320" fill="#e8b44a">FARE</text>
+<text class="bdg pk" x="712" y="350">PK</text>
+<text class="pk" x="740" y="350">fare_id</text>
+<text class="bdg fk" x="712" y="367.5">FK</text>
+<text class="fk" x="740" y="367.5">flight_id</text>
+<text class="bdg fk" x="712" y="385.0">FK</text>
+<text class="fk" x="740" y="385.0">class_code</text>
+<text class="at" x="740" y="402.5">base_fare / taxes</text>
+<text class="at" x="740" y="420.0">refundable_flag</text>
+<text class="at" x="740" y="437.5">cancel_fee_pct</text>
+<text class="at" x="740" y="455.0">valid_from / valid_to</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="1070" y="300" width="250" height="118.0" rx="10" fill="url(#gb)" stroke="#4aa8ff"/>
+<path d="M1070,330 h250" stroke="#4aa8ff" stroke-opacity=".55" stroke-width="1"/>
+<rect x="1070" y="300" width="250" height="30" rx="10" fill="#4aa8ff" fill-opacity=".13"/>
+<text class="et" x="1082" y="320" fill="#4aa8ff">CABIN_CLASS</text>
+<text class="bdg pk" x="1082" y="350">PK</text>
+<text class="pk" x="1110" y="350">class_code</text>
+<text class="at" x="1110" y="367.5">class_name</text>
+<text class="at" x="1110" y="385.0">free_bag_kg</text>
+<text class="at" x="1110" y="402.5">priority_rank</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="1400" y="300" width="250" height="135.5" rx="10" fill="url(#gb)" stroke="#4aa8ff"/>
+<path d="M1400,330 h250" stroke="#4aa8ff" stroke-opacity=".55" stroke-width="1"/>
+<rect x="1400" y="300" width="250" height="30" rx="10" fill="#4aa8ff" fill-opacity=".13"/>
+<text class="et" x="1412" y="320" fill="#4aa8ff">SEAT</text>
+<text class="bdg pk" x="1412" y="350">PK</text>
+<text class="pk" x="1440" y="350">seat_id</text>
+<text class="bdg fk" x="1412" y="367.5">FK</text>
+<text class="fk" x="1440" y="367.5">type_id</text>
+<text class="bdg uq" x="1412" y="385.0">AK</text>
+<text class="uq" x="1440" y="385.0">seat_no (per type)</text>
+<text class="bdg fk" x="1412" y="402.5">FK</text>
+<text class="fk" x="1440" y="402.5">class_code</text>
+<text class="at" x="1440" y="420.0">is_exit_row</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="30" y="560" width="250" height="153.0" rx="10" fill="url(#gb)" stroke="#4aa8ff"/>
+<path d="M30,590 h250" stroke="#4aa8ff" stroke-opacity=".55" stroke-width="1"/>
+<rect x="30" y="560" width="250" height="30" rx="10" fill="#4aa8ff" fill-opacity=".13"/>
+<text class="et" x="42" y="580" fill="#4aa8ff">PASSENGER</text>
+<text class="bdg pk" x="42" y="610">PK</text>
+<text class="pk" x="70" y="610">passenger_id</text>
+<text class="bdg uq" x="42" y="627.5">AK</text>
+<text class="uq" x="70" y="627.5">passport_no</text>
+<text class="at" x="70" y="645.0">first_name / last_name</text>
+<text class="at" x="70" y="662.5">date_of_birth</text>
+<text class="at" x="70" y="680.0">nationality</text>
+<text class="at" x="70" y="697.5">email / phone</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="330" y="560" width="250" height="170.5" rx="10" fill="url(#gc)" stroke="#e8b44a"/>
+<path d="M330,590 h250" stroke="#e8b44a" stroke-opacity=".55" stroke-width="1"/>
+<rect x="330" y="560" width="250" height="30" rx="10" fill="#e8b44a" fill-opacity=".13"/>
+<text class="et" x="342" y="580" fill="#e8b44a">BOOKING</text>
+<text class="bdg pk" x="342" y="610">PK</text>
+<text class="pk" x="370" y="610">booking_id</text>
+<text class="bdg uq" x="342" y="627.5">AK</text>
+<text class="uq" x="370" y="627.5">pnr</text>
+<text class="bdg fk" x="342" y="645.0">FK</text>
+<text class="fk" x="370" y="645.0">lead_passenger_id</text>
+<text class="bdg fk" x="342" y="662.5">FK</text>
+<text class="fk" x="370" y="662.5">created_by_user_id</text>
+<text class="at" x="370" y="680.0">booking_ts / channel</text>
+<text class="at" x="370" y="697.5">booking_status</text>
+<text class="at" x="370" y="715.0">total_amount</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="700" y="560" width="250" height="223.0" rx="10" fill="url(#gg)" stroke="#7ee081"/>
+<path d="M700,590 h250" stroke="#7ee081" stroke-opacity=".55" stroke-width="1"/>
+<rect x="700" y="560" width="250" height="30" rx="10" fill="#7ee081" fill-opacity=".13"/>
+<text class="et" x="712" y="580" fill="#7ee081">TICKET  ◆</text>
+<text class="bdg pk" x="712" y="610">PK</text>
+<text class="pk" x="740" y="610">ticket_id</text>
+<text class="bdg uq" x="712" y="627.5">AK</text>
+<text class="uq" x="740" y="627.5">ticket_no</text>
+<text class="bdg fk" x="712" y="645.0">FK</text>
+<text class="fk" x="740" y="645.0">booking_id</text>
+<text class="bdg fk" x="712" y="662.5">FK</text>
+<text class="fk" x="740" y="662.5">flight_id</text>
+<text class="bdg fk" x="712" y="680.0">FK</text>
+<text class="fk" x="740" y="680.0">passenger_id</text>
+<text class="bdg fk" x="712" y="697.5">FK</text>
+<text class="fk" x="740" y="697.5">seat_id  (nullable)</text>
+<text class="bdg fk" x="712" y="715.0">FK</text>
+<text class="fk" x="740" y="715.0">fare_id</text>
+<text class="bdg uq" x="712" y="732.5">AK</text>
+<text class="uq" x="740" y="732.5">(flight_id, passenger_id)</text>
+<text class="bdg uq" x="712" y="750.0">AK</text>
+<text class="uq" x="740" y="750.0">(flight_id, seat_id)</text>
+<text class="at" x="740" y="767.5">ticket_status</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="1070" y="560" width="250" height="135.5" rx="10" fill="url(#gb)" stroke="#4aa8ff"/>
+<path d="M1070,590 h250" stroke="#4aa8ff" stroke-opacity=".55" stroke-width="1"/>
+<rect x="1070" y="560" width="250" height="30" rx="10" fill="#4aa8ff" fill-opacity=".13"/>
+<text class="et" x="1082" y="580" fill="#4aa8ff">CHECK_IN</text>
+<text class="bdg pk" x="1082" y="610">PK</text>
+<text class="pk" x="1110" y="610">checkin_id</text>
+<text class="bdg fk" x="1082" y="627.5">FK</text>
+<text class="fk" x="1110" y="627.5">ticket_id  (unique)</text>
+<text class="at" x="1110" y="645.0">checkin_ts / method</text>
+<text class="bdg uq" x="1082" y="662.5">AK</text>
+<text class="uq" x="1110" y="662.5">boarding_pass_no</text>
+<text class="at" x="1110" y="680.0">boarding_seq</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="1400" y="560" width="250" height="135.5" rx="10" fill="url(#gb)" stroke="#4aa8ff"/>
+<path d="M1400,590 h250" stroke="#4aa8ff" stroke-opacity=".55" stroke-width="1"/>
+<rect x="1400" y="560" width="250" height="30" rx="10" fill="#4aa8ff" fill-opacity=".13"/>
+<text class="et" x="1412" y="580" fill="#4aa8ff">BAGGAGE</text>
+<text class="bdg pk" x="1412" y="610">PK</text>
+<text class="pk" x="1440" y="610">baggage_id</text>
+<text class="bdg uq" x="1412" y="627.5">AK</text>
+<text class="uq" x="1440" y="627.5">tag_no</text>
+<text class="bdg fk" x="1412" y="645.0">FK</text>
+<text class="fk" x="1440" y="645.0">checkin_id</text>
+<text class="at" x="1440" y="662.5">weight_kg  ≥ 0</text>
+<text class="at" x="1440" y="680.0">bag_status</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="30" y="860" width="250" height="135.5" rx="10" fill="url(#gb)" stroke="#4aa8ff"/>
+<path d="M30,890 h250" stroke="#4aa8ff" stroke-opacity=".55" stroke-width="1"/>
+<rect x="30" y="860" width="250" height="30" rx="10" fill="#4aa8ff" fill-opacity=".13"/>
+<text class="et" x="42" y="880" fill="#4aa8ff">APP_USER</text>
+<text class="bdg pk" x="42" y="910">PK</text>
+<text class="pk" x="70" y="910">user_id</text>
+<text class="bdg uq" x="42" y="927.5">AK</text>
+<text class="uq" x="70" y="927.5">login_id</text>
+<text class="bdg fk" x="42" y="945.0">FK</text>
+<text class="fk" x="70" y="945.0">role_code</text>
+<text class="at" x="70" y="962.5">full_name</text>
+<text class="at" x="70" y="980.0">is_active</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="1000" y="860" width="210" height="118.0" rx="10" fill="url(#gv)" stroke="#b58ce0"/>
+<path d="M1000,890 h210" stroke="#b58ce0" stroke-opacity=".55" stroke-width="1"/>
+<rect x="1000" y="860" width="210" height="30" rx="10" fill="#b58ce0" fill-opacity=".13"/>
+<text class="et" x="1012" y="880" fill="#b58ce0">ROLE</text>
+<text class="bdg pk" x="1012" y="910">PK</text>
+<text class="pk" x="1040" y="910">role_code</text>
+<text class="bdg uq" x="1012" y="927.5">AK</text>
+<text class="uq" x="1040" y="927.5">role_name</text>
+<text class="at" x="1040" y="945.0">landing_section</text>
+<text class="at" x="1040" y="962.5">is_system</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="1240" y="860" width="210" height="118.0" rx="10" fill="url(#gg)" stroke="#7ee081"/>
+<path d="M1240,890 h210" stroke="#7ee081" stroke-opacity=".55" stroke-width="1"/>
+<rect x="1240" y="860" width="210" height="30" rx="10" fill="#7ee081" fill-opacity=".13"/>
+<text class="et" x="1252" y="880" fill="#7ee081">ROLE_PERMISSION  ◆</text>
+<text class="bdg pk" x="1252" y="910">PK</text>
+<text class="pk" x="1280" y="910">role_perm_id</text>
+<text class="bdg fk" x="1252" y="927.5">FK</text>
+<text class="fk" x="1280" y="927.5">role_code</text>
+<text class="bdg fk" x="1252" y="945.0">FK</text>
+<text class="fk" x="1280" y="945.0">permission_code</text>
+<text class="bdg uq" x="1252" y="962.5">AK</text>
+<text class="uq" x="1280" y="962.5">(role, permission)</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="1480" y="860" width="195" height="118.0" rx="10" fill="url(#gv)" stroke="#b58ce0"/>
+<path d="M1480,890 h195" stroke="#b58ce0" stroke-opacity=".55" stroke-width="1"/>
+<rect x="1480" y="860" width="195" height="30" rx="10" fill="#b58ce0" fill-opacity=".13"/>
+<text class="et" x="1492" y="880" fill="#b58ce0">PERMISSION</text>
+<text class="bdg pk" x="1492" y="910">PK</text>
+<text class="pk" x="1520" y="910">permission_code</text>
+<text class="at" x="1520" y="927.5">module</text>
+<text class="at" x="1520" y="945.0">action</text>
+<text class="at" x="1520" y="962.5">description</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="330" y="860" width="250" height="153.0" rx="10" fill="url(#gb)" stroke="#4aa8ff"/>
+<path d="M330,890 h250" stroke="#4aa8ff" stroke-opacity=".55" stroke-width="1"/>
+<rect x="330" y="860" width="250" height="30" rx="10" fill="#4aa8ff" fill-opacity=".13"/>
+<text class="et" x="342" y="880" fill="#4aa8ff">PAYMENT</text>
+<text class="bdg pk" x="342" y="910">PK</text>
+<text class="pk" x="370" y="910">payment_id</text>
+<text class="bdg fk" x="342" y="927.5">FK</text>
+<text class="fk" x="370" y="927.5">booking_id</text>
+<text class="bdg uq" x="342" y="945.0">AK</text>
+<text class="uq" x="370" y="945.0">txn_reference</text>
+<text class="at" x="370" y="962.5">amount / method</text>
+<text class="at" x="370" y="980.0">paid_ts</text>
+<text class="at" x="370" y="997.5">pay_status</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="700" y="860" width="250" height="153.0" rx="10" fill="url(#gb)" stroke="#4aa8ff"/>
+<path d="M700,890 h250" stroke="#4aa8ff" stroke-opacity=".55" stroke-width="1"/>
+<rect x="700" y="860" width="250" height="30" rx="10" fill="#4aa8ff" fill-opacity=".13"/>
+<text class="et" x="712" y="880" fill="#4aa8ff">CANCELLATION</text>
+<text class="bdg pk" x="712" y="910">PK</text>
+<text class="pk" x="740" y="910">cancellation_id</text>
+<text class="bdg fk" x="712" y="927.5">FK</text>
+<text class="fk" x="740" y="927.5">ticket_id  (unique)</text>
+<text class="at" x="740" y="945.0">cancel_ts</text>
+<text class="at" x="740" y="962.5">reason_code</text>
+<text class="at" x="740" y="980.0">refund_amount</text>
+<text class="bdg fk" x="712" y="997.5">FK</text>
+<text class="fk" x="740" y="997.5">processed_by_user_id</text>
+</g>
+<path class="link" d="M280,82.84 L330,83.36"/><path class="foot" d="M293,74.84 L293,90.84"/><path class="foot" d="M317,74.36 L330,83.36 L317,92.36"/><path class="foot" d="M330,83.36 L317,83.36"/><text class="rl" x="294" y="62">origin</text>
+<path class="link" d="M280,154.75 L330,137.56"/><path class="foot" d="M293,146.75 L293,162.75"/><path class="foot" d="M317,128.56 L330,137.56 L317,146.56"/><path class="foot" d="M330,137.56 L317,137.56"/><text class="rl" x="298" y="141">dest</text>
+<path class="link" d="M580,107.75 L635,107.75 L635,92.64000000000001 L700,92.64000000000001"/><path class="foot" d="M593,99.75 L593,115.75"/><path class="foot" d="M687,83.64000000000001 L700,92.64000000000001 L687,101.64000000000001"/><path class="foot" d="M700,92.64000000000001 L687,92.64000000000001"/><text class="rl" x="642" y="114">is flown as</text>
+<path class="link" d="M1070,107.75 L1025,107.75 L1025,105.8 L950,105.8"/><path class="foot" d="M1057,99.75 L1057,115.75"/><path class="foot" d="M963,96.8 L950,105.8 L963,114.8"/><path class="foot" d="M950,105.8 L963,105.8"/><text class="rl" x="952" y="85">operates</text>
+<path class="link" d="M1400,104.9 L1320,107.75"/><path class="foot" d="M1387,96.9 L1387,112.9"/><path class="foot" d="M1333,98.75 L1320,107.75 L1333,116.75"/><path class="foot" d="M1320,107.75 L1333,107.75"/><text class="rl" x="1330" y="98">type of</text>
+<path class="link" d="M1525.0,158.0 L1525.0,300"/><path class="foot" d="M1517.0,171.0 L1533.0,171.0"/><path class="foot" d="M1516.0,287 L1525.0,300 L1534.0,287"/><path class="foot" d="M1525.0,300 L1525.0,287"/><text class="rl" x="1530" y="240">defines seat map</text>
+<path class="link" d="M787.5,228.0 L787.5,300"/><path class="foot" d="M779.5,241.0 L795.5,241.0"/><path class="foot" d="M778.5,287 L787.5,300 L796.5,287"/><path class="foot" d="M787.5,300 L787.5,287"/><text class="rl" x="792" y="293">is priced by</text>
+<path class="link" d="M1070,347.2 L950,359.675"/><path class="foot" d="M1057,339.2 L1057,355.2"/><path class="foot" d="M963,350.675 L950,359.675 L963,368.675"/><path class="foot" d="M950,359.675 L963,359.675"/><text class="rl" x="962" y="332">applies to</text>
+<path class="link" d="M1320,382.6 L1400,384.01"/><path class="foot" d="M1333,374.6 L1333,390.6"/><path class="foot" d="M1387,375.01 L1400,384.01 L1387,393.01"/><path class="foot" d="M1400,384.01 L1387,384.01"/><text class="rl" x="1328" y="388">categorises</text>
+<path class="link" d="M905.0,228.0 L905.0,278 L978,278 L978,530 L895.0,530 L895.0,560"/><path class="foot" d="M897.0,241.0 L913.0,241.0"/><path class="foot" d="M886.0,547 L895.0,560 L904.0,547"/><path class="foot" d="M895.0,560 L895.0,547"/><text class="rl" x="986" y="430">carries</text>
+<path class="link" d="M775.0,470.5 L770.0,560"/><path class="foot" d="M767.0,483.5 L783.0,483.5"/><path class="foot" d="M761.0,547 L770.0,560 L779.0,547"/><path class="foot" d="M770.0,560 L770.0,547"/><text class="rl" x="720" y="548">prices</text>
+<path class="link" d="M280,621.2 L330,628.2"/><path class="foot" d="M293,613.2 L293,629.2"/><path class="foot" d="M317,619.2 L330,628.2 L317,637.2"/><path class="foot" d="M330,628.2 L317,628.2"/><text class="rl" x="292" y="598">makes</text>
+<path class="link" d="M580,636.725 L700,638.05"/><path class="foot" d="M593,628.725 L593,644.725"/><path class="foot" d="M687,629.05 L700,638.05 L687,647.05"/><path class="foot" d="M700,638.05 L687,638.05"/><text class="rl" x="592" y="610">issues</text>
+<path class="link" d="M180.0,713.0 L180.0,826 L660,826 L660,749.55 L700,749.55"/><path class="foot" d="M172.0,726.0 L188.0,726.0"/><path class="foot" d="M687,740.55 L700,749.55 L687,758.55"/><path class="foot" d="M700,749.55 L687,749.55"/><text class="rl" x="266" y="816">travels on</text>
+<path class="link" d="M1525.0,435.5 L1525.0,498 L1010,498 L1010,615.75 L950,615.75"/><path class="foot" d="M1517.0,448.5 L1533.0,448.5"/><path class="foot" d="M963,607.75 L963,623.75"/><path class="foot" d="M972,615.75 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0"/><text class="rl" x="1340" y="492">is assigned to</text>
+<path class="link" d="M950,698.26 L1070,620.975"/><path class="foot" d="M963,690.26 L963,706.26"/><path class="foot" d="M1057,612.975 L1057,628.975"/><path class="foot" d="M1048,620.975 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0"/><text class="rl" x="964" y="660">produces</text>
+<path class="link" d="M1320,641.3 L1400,627.75"/><path class="foot" d="M1333,633.3 L1333,649.3"/><path class="foot" d="M1387,618.75 L1400,627.75 L1387,636.75"/><path class="foot" d="M1400,627.75 L1387,627.75"/><text class="rl" x="1332" y="648">registers</text>
+<path class="link" d="M850.0,783.0 L825.0,860"/><path class="foot" d="M842.0,796.0 L858.0,796.0"/><path class="foot" d="M817.0,847 L833.0,847"/><path class="foot" d="M825.0,838 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0"/><text class="rl" x="868" y="838">may be voided by</text>
+<path class="link" d="M430.0,730.5 L430.0,860"/><path class="foot" d="M422.0,743.5 L438.0,743.5"/><path class="foot" d="M421.0,847 L430.0,860 L439.0,847"/><path class="foot" d="M430.0,860 L430.0,847"/><text class="rl" x="438" y="842">is settled by</text>
+<path class="link dash" d="M280,900.65 L308,900.65 L308,800 L367.5,800 L367.5,730.5"/><path class="foot" d="M293,892.65 L293,908.65"/><path class="foot" d="M358.5,743.5 L367.5,730.5 L376.5,743.5"/><path class="foot" d="M367.5,730.5 L367.5,743.5"/><text class="rl" x="280" y="856">creates / audits</text>
+<path class="link dash" d="M280,952.14 L314,952.14 L314,1059.0 L905.0,1059.0 L905.0,1013.0"/><path class="foot" d="M293,944.14 L293,960.14"/><path class="foot" d="M896.0,1026.0 L905.0,1013.0 L914.0,1026.0"/><path class="foot" d="M905.0,1013.0 L905.0,1026.0"/><text class="rl" x="480" y="1053.0">processes</text>
+<path class="link" d="M1073.5,978.0 L1073.5,1091.5 L117.5,1091.5 L117.5,995.5"/><path class="foot" d="M1065.5,991.0 L1081.5,991.0"/><path class="foot" d="M108.5,1008.5 L117.5,995.5 L126.5,1008.5"/><path class="foot" d="M117.5,995.5 L117.5,1008.5"/><text class="rl" x="560" y="1085.5">is held by</text>
+<path class="link" d="M1210,919.0 L1240,919.0"/><path class="foot" d="M1223,911.0 L1223,927.0"/><path class="foot" d="M1227,910.0 L1240,919.0 L1227,928.0"/><path class="foot" d="M1240,919.0 L1227,919.0"/><text class="rl" x="1216" y="894">grants</text>
+<path class="link" d="M1480,919.0 L1450,944.96"/><path class="foot" d="M1467,911.0 L1467,927.0"/><path class="foot" d="M1463,935.96 L1450,944.96 L1463,953.96"/><path class="foot" d="M1450,944.96 L1463,944.96"/><text class="rl" x="1448" y="984">granted by</text>
+</svg>
+    </div></div>
+    <div class="lg">
+      <span><svg viewBox="0 0 30 13"><path class="lk" d="M2,6.5 H23 M23,1 L23,12"/></svg> exactly one</span>
+      <span><svg viewBox="0 0 30 13"><path class="lk" d="M2,6.5 H21 M21,6.5 L29,1 M21,6.5 L29,12 M21,6.5 H29"/></svg> many (0..N)</span>
+      <span><svg viewBox="0 0 30 13"><path class="lk" d="M2,6.5 H15 M15,1 L15,12"/><circle cx="23" cy="6.5" r="4.5" class="lk"/></svg> zero or one</span>
+      <span><svg viewBox="0 0 30 13"><path class="lk" style="stroke-dasharray:4 3" d="M2,6.5 H28"/></svg> audit link</span>
+      <span style="color:var(--gold)">PK primary key</span><span style="color:#7fb3f0">FK foreign key</span>
+      <span style="color:var(--violet)">AK unique key</span><span style="color:var(--jade)">◆ associative entity</span>
+    </div>
+  </div>
+</section>
+
+<!-- CARDINALITY -->
+<section id="card">
+  <div class="rv">
+    <div class="kick">05 · Cardinality</div>
+    <h2>Cardinality, participation &amp; <em>associative entities</em></h2>
+    <p class="lede">Total participation becomes a <code>NOT NULL</code> foreign key; partial becomes a nullable one.</p>
+  </div>
+  <div class="tw rv"><table>
+    <thead><tr><th>Relationship</th><th>Cardinality</th><th>Participation</th><th>Where the FK lives</th></tr></thead>
+    <tbody>
+      <tr><td><b>AIRPORT — ROUTE</b> (origin / dest)</td><td><code>1 : N</code></td><td>Partial : Total</td><td><code>ROUTE.origin_airport_id, dest_airport_id</code></td></tr>
+      <tr><td><b>ROUTE — FLIGHT</b></td><td><code>1 : N</code></td><td>Partial : Total</td><td><code>FLIGHT.route_id</code> NOT NULL</td></tr>
+      <tr><td><b>AIRCRAFT_TYPE — AIRCRAFT — FLIGHT</b></td><td><code>1 : N : N</code></td><td>Total : Total</td><td><code>AIRCRAFT.type_id</code>, <code>FLIGHT.aircraft_id</code></td></tr>
+      <tr><td><b>AIRCRAFT_TYPE — SEAT</b></td><td><code>1 : N</code></td><td>Total : Total</td><td><code>SEAT.type_id</code> — the map belongs to the type</td></tr>
+      <tr><td><b>FLIGHT — CABIN_CLASS</b></td><td><code style="color:var(--gold2)">M : N → FARE</code></td><td>Total : Total</td><td>FKs in <b style="color:var(--jade)">FARE ◆</b></td></tr>
+      <tr><td><b>BOOKING × PASSENGER × FLIGHT</b></td><td><code style="color:var(--gold2)">M : N : N → TICKET</code></td><td>Total : Total : Partial</td><td>FKs in <b style="color:var(--jade)">TICKET ◆</b></td></tr>
+      <tr><td><b>SEAT — TICKET</b></td><td><code>1 : 0..1</code></td><td>Partial : Partial</td><td><code>TICKET.seat_id</code> nullable + <code>UNIQUE(flight, seat)</code></td></tr>
+      <tr><td><b>TICKET — CHECK_IN — BAGGAGE</b></td><td><code>1 : 0..1 : N</code></td><td>Partial : Total</td><td><code>CHECK_IN.ticket_id</code> UNIQUE <b style="color:var(--jade)">◆</b></td></tr>
+      <tr><td><b>TICKET — CANCELLATION</b></td><td><code>1 : 0..1</code></td><td>Partial : Total</td><td><code>CANCELLATION.ticket_id</code> UNIQUE <b style="color:var(--jade)">◆</b></td></tr>
+      <tr><td><b>BOOKING — PAYMENT</b></td><td><code>1 : N</code></td><td>Partial : Total</td><td><code>PAYMENT.booking_id</code> NOT NULL</td></tr>
+      <tr><td><b>ROLE — PERMISSION</b></td><td><code style="color:var(--gold2)">M : N → ROLE_PERMISSION</code></td><td>Total : Total</td><td>FKs in <b style="color:var(--jade)">ROLE_PERMISSION ◆</b></td></tr>
+    </tbody></table></div>
+  <div class="call j rv" style="margin-top:14px"><b>Five associative entities.</b>
+    TICKET (ternary M:N plus the optional seat) · FARE (flight × class, carries the price) ·
+    CHECK_IN and CANCELLATION (1:1 events with attributes of their own) ·
+    ROLE_PERMISSION (role × permission). A junction becomes an entity the moment it has attributes.</div>
+</section>
+
+<!-- SCHEMA -->
+<section id="schema">
+  <div class="rv">
+    <div class="kick">06 · Relational schema</div>
+    <h2>Nineteen relations, <em>normalised to 3NF</em></h2>
+  </div>
+  <div class="nf rv">
+    <div class="nfc"><span class="bar" style="background:var(--sky)"></span>
+      <div class="s" style="color:var(--sky2)">1NF · atomic values</div>
+      <div class="fd">Repeating passenger / seat / bag groups on one booking row</div>
+      <div class="fx">✔ Split into TICKET and BAGGAGE rows</div></div>
+    <div class="nfc"><span class="bar" style="background:var(--violet)"></span>
+      <div class="s" style="color:var(--violet)">2NF · no partial dependency</div>
+      <div class="fd">(flight_no, dep_date) → flight details<br>passport_no → passenger details</div>
+      <div class="fx">✔ Extract FLIGHT, PASSENGER, SEAT</div></div>
+    <div class="nfc"><span class="bar" style="background:var(--gold)"></span>
+      <div class="s" style="color:var(--gold)">3NF · no transitive dependency</div>
+      <div class="fd">flight → aircraft → type → model, capacity<br>route → airport → city</div>
+      <div class="fx">✔ Extract AIRCRAFT_TYPE, AIRPORT, CABIN_CLASS, FARE</div></div>
+  </div>
+  <div class="g g4 rv" id="relgrid"></div>
+  <p class="lede rv" style="margin:14px 0 0;font-size:12.5px;font-family:var(--mono);color:var(--ink3)">
+    Every relation is in 3NF — and in BCNF: in each, every determinant is a candidate key.
+    <code>BOOKING.total_amount</code> and <code>CANCELLATION.refund_amount</code> are derived values stored
+    deliberately for auditability, reconciled inside the same transaction that changes their sources.</p>
+</section>
+
+<!-- RULES -->
+<section id="rules">
+  <div class="rv">
+    <div class="kick">07 · Business rules</div>
+    <h2>Every rule, and <em>where it lives</em></h2>
+    <p class="lede">A rule enforced only in the application is a rule a stray <code>UPDATE</code> will break.</p>
+  </div>
+  <div class="tw rv"><table>
+    <thead><tr><th>#</th><th>Business rule</th><th>Enforced by</th><th>Lives in</th></tr></thead>
+    <tbody id="rulesb"></tbody></table></div>
+  <p class="lede rv" style="margin:12px 0 0;font-size:13px">The application layer gives the error message.
+    The database layer makes the invalid state <b>impossible</b> — whichever client, script or console
+    reaches the data.</p>
+</section>
+
+<!-- CONCURRENCY -->
+<section id="conc">
+  <div class="rv">
+    <div class="kick">08 · Concurrency</div>
+    <h2>Two agents, <em>one seat 14A</em></h2>
+    <p class="lede">The boundary case the whole design exists to survive. Two agents book the
+      <b>last seat</b> on AI-2711 within the same few milliseconds.</p>
+  </div>
+  <div class="pbar rv">
+    <button class="pl" id="run">▶ Run the race</button>
+    <button class="pl gh" id="step">Step ›</button>
+    <button class="pl gh" id="reset">Reset</button>
+    <span class="narr" id="narr">Both transactions begin. Seat 14A is free; one seat remains.</span>
+  </div>
+  <div class="txn rv" id="txn">
+    <div class="h a">T1 · Counter A</div><div class="h t">t</div><div class="h b">T2 · Counter B</div>
+  </div>
+  <div class="g g4 rv" style="margin-top:14px">
+    <div class="card"><span class="bar" style="background:var(--sky)"></span><div class="no">Pessimistic</div>
+      <p><code>SELECT … FOR UPDATE</code> takes the row lock; T2 blocks instead of reading stale data.</p></div>
+    <div class="card"><span class="bar" style="background:var(--gold)"></span><div class="no">Declarative</div>
+      <p><code>UNIQUE(flight_id, seat_id)</code> is the backstop — it holds even if the lock is forgotten.</p></div>
+    <div class="card"><span class="bar" style="background:var(--jade)"></span><div class="no">Isolation</div>
+      <p><code>READ COMMITTED</code> + <code>FOR UPDATE</code>; <code>SERIALIZABLE</code> only for the capacity phantom, with retry.</p></div>
+    <div class="card"><span class="bar" style="background:var(--violet)"></span><div class="no">Scope</div>
+      <p>Seat holds are rows with an expiry — never an open transaction waiting on a human.</p></div>
+  </div>
+  <div class="call j rv" style="margin-top:14px"><b>Boundary cases tested in Review 2.</b>
+    The last seat · capacity at exactly N vs N+1 · cancel and check-in at the same instant ·
+    retried payment callback (<code>UNIQUE(txn_reference)</code>) · double refund ·
+    midnight departure across time zones · refund after departure · abandoned seat hold · aircraft swap.</div>
+</section>
+
+<!-- NEXT -->
+<section id="next">
+  <div class="rv">
+    <div class="kick">09 · Requirements, reports &amp; next</div>
+    <h2>What we build <em>from here</em></h2>
+  </div>
+  <div class="g g3 rv">
+    <div class="card"><span class="bar" style="background:var(--sky)"></span>
+      <div class="hd" style="color:var(--sky2)">Functional requirements · 24</div>
+      <ul class="lst li-ob">
+        <li>Maintain airports, routes, fleet and seat maps</li>
+        <li>Publish flights and fares per cabin class</li>
+        <li>Search flights and create a PNR</li>
+        <li>Allocate a seat with no double allocation</li>
+        <li>Issue tickets once payment covers the total</li>
+        <li>Check in, board, accept and tag baggage</li>
+        <li>Cancel, refund and release the seat</li>
+        <li>Authorise every section by role</li>
+      </ul></div>
+    <div class="card"><span class="bar" style="background:var(--jade)"></span>
+      <div class="hd" style="color:var(--jade)">Reports planned · 8</div>
+      <div id="reps"></div></div>
+    <div class="card"><span class="bar" style="background:var(--violet)"></span>
+      <div class="hd" style="color:var(--violet)">The target application</div>
+      <p>A <b>Python (Flask)</b> web app over the same schema. On login it reads
+        <code>ROLE_PERMISSION</code> for the signed-in user and renders only the sections that role holds —
+        booking desk, departure control, operations board, schedule builder, revenue, or user administration.
+        Every route is guarded server-side; the database <code>GRANT</code>s are the second line, so a
+        forged request still cannot read another passenger's PNR.</p></div>
+  </div>
+  <div class="g rv" style="margin-top:14px;gap:8px" id="road"></div>
+</section>
+
+</main>
+
+<footer><div class="fin">
+  <span>Airline Reservation &amp; Flight Operations DBMS</span>
+  <span>Project 18 · Review 1 · Week 7</span>
+  <span>Conceptual design · Initial relational schema · 3NF</span>
+</div></footer>
+
+<script>
+/* ============ ANIMATED BACKGROUND ============ */
+(function(){
+  const c=document.getElementById('bg'), x=c.getContext('2d');
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let W=0,H=0,dpr=1,nodes=[],planes=[],t=0,mx=-9e3,my=-9e3,run=true;
+  function size(){
+    dpr=Math.min(devicePixelRatio||1,2);
+    W=innerWidth;H=innerHeight;
+    c.width=W*dpr;c.height=H*dpr;c.style.width=W+'px';c.style.height=H+'px';
+    x.setTransform(dpr,0,0,dpr,0,0);
+    const n=Math.round(Math.min(80,Math.max(26,W*H/26000)));
+    nodes=Array.from({length:n},()=>({
+      x:Math.random()*W,y:Math.random()*H,
+      vx:(Math.random()-.5)*.16,vy:(Math.random()-.5)*.16,
+      r:Math.random()*1.5+.5,d:Math.random()*.7+.3}));
+  }
+  function plane(px,py,ang){
+    planes.push({x:px,y:py,a:ang===undefined?(Math.random()*.7-.35):ang,
+      s:Math.random()*.9+.85,trail:[],life:0});
+  }
+  addEventListener('resize',size);
+  addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;});
+  addEventListener('mouseout',()=>{mx=my=-9e3;});
+  addEventListener('click',e=>{
+    if(e.target.closest('a,button,.vp,input,select')) return;
+    plane(e.clientX,e.clientY,Math.random()*Math.PI*2);
+  });
+  document.addEventListener('visibilitychange',()=>{run=!document.hidden;if(run)loop();});
+  size();
+  for(let i=0;i<2;i++) plane(Math.random()*W,Math.random()*H);
+
+  function loop(){
+    if(!run) return;
+    requestAnimationFrame(loop);
+    t+=.006;
+    x.clearRect(0,0,W,H);
+
+    /* horizon grid, drifting */
+    x.save();
+    x.strokeStyle='rgba(90,140,200,.05)';x.lineWidth=1;
+    const gs=68, off=(t*9)%gs;
+    for(let gy=off;gy<H;gy+=gs){x.beginPath();x.moveTo(0,gy);x.lineTo(W,gy);x.stroke();}
+    for(let gx=(-off);gx<W;gx+=gs){x.beginPath();x.moveTo(gx,0);x.lineTo(gx,H);x.stroke();}
+    x.restore();
+
+    /* radar sweep, bottom right */
+    const rx=W*0.86, ry=H*0.80, rr=Math.min(W,H)*0.34;
+    x.save();x.translate(rx,ry);
+    x.strokeStyle='rgba(110,224,138,.055)';x.lineWidth=1;
+    for(let k=1;k<=3;k++){x.beginPath();x.arc(0,0,rr*k/3,0,Math.PI*2);x.stroke();}
+    const sa=t*0.55;
+    const g=x.createConicGradient?x.createConicGradient(sa,0,0):null;
+    if(g){g.addColorStop(0,'rgba(110,224,138,.10)');g.addColorStop(.06,'rgba(110,224,138,0)');
+      g.addColorStop(1,'rgba(110,224,138,0)');
+      x.fillStyle=g;x.beginPath();x.arc(0,0,rr,0,Math.PI*2);x.fill();}
+    x.restore();
+
+    /* route network */
+    for(const n of nodes){
+      n.x+=n.vx;n.y+=n.vy;
+      if(n.x<-30)n.x=W+30; if(n.x>W+30)n.x=-30;
+      if(n.y<-30)n.y=H+30; if(n.y>H+30)n.y=-30;
+      /* gentle pull toward the cursor */
+      const dx=mx-n.x, dy=my-n.y, d2=dx*dx+dy*dy;
+      if(d2<40000){ n.x+=dx*0.0016; n.y+=dy*0.0016; }
+    }
+    const LK=132;
+    for(let i=0;i<nodes.length;i++){
+      const a=nodes[i];
+      for(let j=i+1;j<nodes.length;j++){
+        const b=nodes[j], dx=a.x-b.x, dy=a.y-b.y, d=Math.hypot(dx,dy);
+        if(d<LK){
+          x.strokeStyle='rgba(90,150,220,'+((1-d/LK)*0.14).toFixed(3)+')';
+          x.lineWidth=.7;x.beginPath();x.moveTo(a.x,a.y);x.lineTo(b.x,b.y);x.stroke();
+        }
+      }
+      const dm=Math.hypot(a.x-mx,a.y-my);
+      if(dm<190){
+        x.strokeStyle='rgba(232,180,74,'+((1-dm/190)*0.26).toFixed(3)+')';
+        x.lineWidth=.8;x.beginPath();x.moveTo(a.x,a.y);x.lineTo(mx,my);x.stroke();
+      }
+      x.fillStyle='rgba(175,205,240,'+(a.d*0.5).toFixed(2)+')';
+      x.beginPath();x.arc(a.x,a.y,a.r,0,Math.PI*2);x.fill();
+    }
+
+    /* aircraft with contrails */
+    for(let i=planes.length-1;i>=0;i--){
+      const p=planes[i];
+      p.x+=Math.cos(p.a)*p.s; p.y+=Math.sin(p.a)*p.s; p.life++;
+      p.a+=Math.sin(t*0.7+i)*0.0012;
+      p.trail.push([p.x,p.y]); if(p.trail.length>110) p.trail.shift();
+      x.beginPath();
+      for(let k=0;k<p.trail.length;k++){
+        const pt=p.trail[k];
+        k?x.lineTo(pt[0],pt[1]):x.moveTo(pt[0],pt[1]);
+      }
+      x.strokeStyle='rgba(232,180,74,.13)';x.lineWidth=1.1;
+      x.setLineDash([5,6]);x.stroke();x.setLineDash([]);
+      x.save();x.translate(p.x,p.y);x.rotate(p.a);
+      x.fillStyle='rgba(255,217,138,.85)';
+      x.beginPath();x.moveTo(7,0);x.lineTo(-5,-4);x.lineTo(-2.5,0);x.lineTo(-5,4);x.closePath();x.fill();
+      x.restore();
+      if(p.x<-140||p.x>W+140||p.y<-140||p.y>H+140||p.life>2600) planes.splice(i,1);
+    }
+    if(planes.length<3 && Math.random()<.004){
+      const edge=Math.floor(Math.random()*4);
+      if(edge===0) plane(-40,Math.random()*H,Math.random()*.8-.4);
+      else if(edge===1) plane(W+40,Math.random()*H,Math.PI+Math.random()*.8-.4);
+      else if(edge===2) plane(Math.random()*W,-40,Math.PI/2+Math.random()*.8-.4);
+      else plane(Math.random()*W,H+40,-Math.PI/2+Math.random()*.8-.4);
+    }
+  }
+  if(!reduce) loop(); else { x.clearRect(0,0,W,H); }
+  setTimeout(()=>{const h=document.getElementById('hint');if(h)h.style.opacity='0';},7000);
+})();
+
+/* ============ reveal + counters + nav ============ */
+const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}})},{threshold:.06,rootMargin:'0px 0px -30px 0px'});
+document.querySelectorAll('.rv').forEach(e=>io.observe(e));
+const cio=new IntersectionObserver(es=>{es.forEach(e=>{if(!e.isIntersecting)return;cio.unobserve(e.target);
+  const t=+e.target.dataset.c;let n=0;const st=Math.max(1,Math.ceil(t/22));
+  const id=setInterval(()=>{n+=st;if(n>=t){n=t;clearInterval(id);}e.target.textContent=n;},34);})},{threshold:.5});
+document.querySelectorAll('[data-c]').forEach(e=>cio.observe(e));
+const runway=document.getElementById('runway'), navA=[...document.querySelectorAll('#nav a')];
+const secs=navA.map(a=>document.querySelector(a.getAttribute('href')));
+addEventListener('scroll',()=>{
+  const h=document.documentElement;
+  runway.style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+'%';
+  let cur=-1;secs.forEach((s,i)=>{if(s&&s.getBoundingClientRect().top<=120)cur=i;});
+  navA.forEach((a,i)=>a.classList.toggle('on',i===cur));
+},{passive:true});
+
+/* ============ RBAC explorer ============ */
+const SECTIONS=[["✈","Flight search"],["🎫","Booking desk"],["👤","Passenger records"],
+  ["💺","Seat map"],["🛄","Departure control"],["🛫","Operations board"],["🗓","Schedule & fares"],
+  ["↩","Cancellations & refunds"],["₹","Payments & revenue"],["📊","Reports"],["🔐","Users & roles"]];
+const ROLES=[
+ {k:"PAX",n:"Passenger",land:"My trips · book · web check-in",
+  p:["R","R U self","C R own","U own","C web","C own","C R own","—"],
+  s:[1,1,0,1,1,0,0,1,1,0,0], note:"Row-level view: passenger_id = current_user_passenger()"},
+ {k:"RES",n:"Reservation Agent",land:"Sell &amp; amend desk",
+  p:["R","C R U","C R U","C R U","R","C R","C R","R"],
+  s:[1,1,1,1,0,0,0,1,1,1,0], note:"The busiest role — owns the full booking lifecycle"},
+ {k:"CHK",n:"Check-in / Gate",land:"Departure control console",
+  p:["R","R","R","R U","C R U","—","—","R"],
+  s:[1,0,1,1,1,0,0,0,0,1,0], note:"Writes CHECK_IN and BAGGAGE; reads everything else"},
+ {k:"OPS",n:"Flight Ops",land:"Live operations board",
+  p:["R U","R","R","R U","R","R","—","R"],
+  s:[1,0,0,1,1,1,0,0,0,1,0], note:"Updates flight_status, gate and actual times"},
+ {k:"PLN",n:"Fleet Planner",land:"Schedule &amp; fare builder",
+  p:["C R U D","—","R","C R U D","—","—","—","R"],
+  s:[1,0,0,1,0,0,1,0,0,1,0], note:"Only role that may create flights, seat maps and fares"},
+ {k:"FIN",n:"Finance Officer",land:"Revenue &amp; settlement",
+  p:["R","R","R","—","—","R U","C R U","R"],
+  s:[0,0,1,0,0,0,0,1,1,1,0], note:"Approves refunds; reconciles payments against bookings"},
+ {k:"ADM",n:"Administrator",land:"User &amp; role management",
+  p:["ALL","ALL","ALL","ALL","ALL","ALL","ALL","ALL"],
+  s:[1,1,1,1,1,1,1,1,1,1,1], note:"Owns ROLE and ROLE_PERMISSION — grants every other role"}];
+
+document.getElementById('roles').innerHTML=ROLES.map((r,i)=>
+  `<button class="rb${i===1?' on':''}" data-i="${i}">${r.n}</button>`).join('');
+document.getElementById('mxb').innerHTML=ROLES.map((r,i)=>
+  `<tr data-i="${i}"><td><b>${r.n}</b></td><td style="color:var(--violet);font-size:12px">${r.land}</td>`+
+  r.p.map(v=>`<td class="c">${v}</td>`).join('')+`</tr>`).join('');
+
+function pickRole(i){
+  const r=ROLES[i];
+  document.querySelectorAll('.rb').forEach(b=>b.classList.toggle('on',+b.dataset.i===i));
+  document.querySelectorAll('#mxb tr').forEach(tr=>{
+    const m=+tr.dataset.i===i;
+    tr.classList.toggle('dim',!m); tr.classList.toggle('hl',m);
+  });
+  document.getElementById('who').textContent='SIGNED IN AS — '+r.n.toUpperCase();
+  document.getElementById('appnav').innerHTML=SECTIONS.map((s,k)=>
+    `<div class="nav-i ${r.s[k]?'ok':'no'}"><span class="ic">${s[0]}</span>${s[1]}</div>`).join('');
+  document.getElementById('appfoot').innerHTML=
+    `${r.s.filter(Boolean).length} of ${SECTIONS.length} SECTIONS GRANTED<br>${r.note}`;
+}
+document.getElementById('roles').addEventListener('click',e=>{
+  const b=e.target.closest('.rb'); if(b) pickRole(+b.dataset.i);
+});
+document.getElementById('mxb').addEventListener('click',e=>{
+  const tr=e.target.closest('tr'); if(tr) pickRole(+tr.dataset.i);
+});
+pickRole(1);
+
+/* ============ ER pan / zoom ============ */
+(function(){
+  const vp=document.getElementById('vp'), cv=document.getElementById('cvv');
+  let z=1,px=0,py=0,drag=false,sx=0,sy=0;
+  const ap=()=>cv.style.transform=`translate(${px}px,${py}px) scale(${z})`;
+  const fit=()=>{z=Math.min(1,(vp.clientWidth-20)/1714,(vp.clientHeight-20)/1194);px=0;py=0;ap();};
+  zi.onclick=()=>{z=Math.min(2.6,z*1.22);ap();};
+  zo.onclick=()=>{z=Math.max(.2,z/1.22);ap();};
+  zf.onclick=fit; zr.onclick=()=>{z=1;px=0;py=0;ap();};
+  vp.addEventListener('mousedown',e=>{drag=true;sx=e.clientX-px;sy=e.clientY-py;vp.classList.add('dr');});
+  addEventListener('mousemove',e=>{if(!drag)return;px=e.clientX-sx;py=e.clientY-sy;ap();});
+  addEventListener('mouseup',()=>{drag=false;vp.classList.remove('dr');});
+  vp.addEventListener('wheel',e=>{if(!e.ctrlKey&&!e.metaKey)return;e.preventDefault();
+    z=Math.max(.2,Math.min(2.6,z*(e.deltaY<0?1.1:1/1.1)));ap();},{passive:false});
+  let t0=null;
+  vp.addEventListener('touchstart',e=>{if(e.touches.length===1)t0=[e.touches[0].clientX-px,e.touches[0].clientY-py];},{passive:true});
+  vp.addEventListener('touchmove',e=>{if(t0&&e.touches.length===1){px=e.touches[0].clientX-t0[0];py=e.touches[0].clientY-t0[1];ap();}},{passive:true});
+  vp.addEventListener('touchend',()=>t0=null);
+  addEventListener('resize',fit); fit();
+})();
+
+/* ============ relations ============ */
+const RELS=[
+["AIRPORT",[["p","airport_id"],["u","iata_code"],["","airport_name"],["","city / country"],["","tz_offset"]]],
+["ROUTE",[["p","route_id"],["f","origin_airport_id"],["f","dest_airport_id"],["","distance_km"],["u","(origin, dest)"]]],
+["AIRCRAFT_TYPE",[["p","type_id"],["u","model_code"],["","manufacturer"],["","total_capacity"]]],
+["AIRCRAFT",[["p","aircraft_id"],["u","tail_number"],["f","type_id"],["","ac_status"]]],
+["CABIN_CLASS",[["p","class_code"],["","class_name"],["","free_bag_kg"],["","priority_rank"]]],
+["SEAT",[["p","seat_id"],["f","type_id"],["","seat_no"],["f","class_code"],["u","(type_id, seat_no)"]]],
+["FLIGHT",[["p","flight_id"],["f","route_id"],["f","aircraft_id"],["","sched &amp; actual times"],["","gate / status"],["u","(flight_no, dep_date)"]]],
+["FARE ◆",[["p","fare_id"],["f","flight_id"],["f","class_code"],["","base_fare / taxes"],["","cancel_fee_pct"]]],
+["PASSENGER",[["p","passenger_id"],["u","passport_no"],["","name / dob"],["","nationality"],["","email / phone"]]],
+["BOOKING",[["p","booking_id"],["u","pnr"],["f","lead_passenger_id"],["f","created_by_user_id"],["","total_amount"]]],
+["TICKET ◆",[["p","ticket_id"],["u","ticket_no"],["f","booking / flight / passenger"],["f","seat_id (NULL) · fare_id"],["u","(flight, passenger)"],["u","(flight, seat)"]]],
+["CHECK_IN ◆",[["p","checkin_id"],["u","ticket_id"],["","checkin_ts / method"],["u","boarding_pass_no"]]],
+["BAGGAGE",[["p","baggage_id"],["u","tag_no"],["f","checkin_id"],["","weight_kg ≥ 0"],["","bag_status"]]],
+["CANCELLATION ◆",[["p","cancellation_id"],["u","ticket_id"],["","reason_code"],["","refund_amount"],["f","processed_by_user_id"]]],
+["PAYMENT",[["p","payment_id"],["f","booking_id"],["u","txn_reference"],["","amount / method"],["","pay_status"]]],
+["APP_USER",[["p","user_id"],["u","login_id"],["f","role_code"],["","full_name"],["","is_active"]]],
+["ROLE",[["p","role_code"],["u","role_name"],["","landing_section"],["","is_system"]]],
+["ROLE_PERMISSION ◆",[["p","role_perm_id"],["f","role_code"],["f","permission_code"],["u","(role, permission)"]]],
+["PERMISSION",[["p","permission_code"],["","module"],["","action"],["","description"]]]];
+document.getElementById('relgrid').innerHTML=RELS.map(([n,cols])=>
+ `<div class="rel"><h4>${n}</h4><ul>`+cols.map(([k,c])=>
+  `<li><em class="${k}">${k==='p'?'PK':k==='f'?'FK':k==='u'?'AK':'&nbsp;&nbsp;'}</em>${c}</li>`).join('')+
+ `</ul></div>`).join('');
+
+/* ============ business rules ============ */
+const BR=[
+["R1","One seat per passenger per flight","UNIQUE(flight_id, passenger_id)","t-tab","Table"],
+["R2","One passenger per seat per flight","UNIQUE(flight_id, seat_id) partial index","t-tab","Table"],
+["R3","Aircraft-capacity limit","Trigger: live coupons vs. total_capacity","t-trg","Trigger"],
+["R4","Seat must exist on the operating type","Trigger across SEAT / FLIGHT / AIRCRAFT","t-trg","Trigger"],
+["R5","Non-negative, bounded baggage","CHECK(weight_kg BETWEEN 0 AND 40)","t-col","Column"],
+["R6","No orphan baggage","checkin_id NOT NULL FK, ON DELETE RESTRICT","t-ref","Referential"],
+["R7","Check-in only for confirmed tickets","Trigger on status + check-in window","t-trg","Trigger"],
+["R8","One check-in, one cancellation per ticket","UNIQUE(ticket_id) on both relations","t-tab","Table"],
+["R9","Refund from the frozen fare, seat released","sp_cancel_ticket() in one transaction","t-txn","Transaction"],
+["R10","Ticketing requires settled payment","sp_issue_tickets(): SUM(payments) &gt;= total","t-txn","Transaction"],
+["R11","Idempotent payments","UNIQUE(txn_reference)","t-tab","Table"],
+["R12","Route origin ≠ destination, arrival &gt; departure","CHECK constraints on ROUTE and FLIGHT","t-tab","Table"],
+["R13","Identity uniqueness (PNR, ticket, tag, tail)","UNIQUE on every alternate key","t-tab","Table"],
+["R14","A user may only reach permitted sections","ROLE_PERMISSION + GRANTs on views","t-ref","RBAC"]];
+document.getElementById('rulesb').innerHTML=BR.map(([n,r,h,c,l])=>
+ `<tr><td style="font-family:var(--mono);color:var(--gold);font-size:11px">${n}</td>
+  <td><b>${r}</b></td><td><code>${h}</code></td><td><span class="tag ${c}">${l}</span></td></tr>`).join('');
+
+/* ============ reports ============ */
+const REPS=[["Flight manifest","multi-table joins"],["Occupancy &amp; load factor","COUNT, GROUP BY"],
+ ["Route demand","GROUP BY + HAVING"],["Baggage summary","SUM, NOT EXISTS"],
+ ["Cancellation &amp; refund","correlated subquery"],["On-time performance","CASE, AVG"],
+ ["Revenue statement","nested aggregate + UNION"],["Passenger travel history","view + row predicate"]];
+document.getElementById('reps').innerHTML=REPS.map(([t,q])=>
+ `<div style="display:flex;justify-content:space-between;gap:10px;padding:4px 0;
+   border-bottom:1px dashed rgba(120,160,210,.09)">
+   <span style="font-size:13px;color:var(--ink)">▸ ${t}</span>
+   <span style="font-family:var(--mono);font-size:9px;color:var(--ink3);white-space:nowrap">${q}</span></div>`).join('');
+
+/* ============ roadmap ============ */
+const ROAD=[["WEEK 7 · NOW","Review 1 — Conceptual design","var(--gold)",
+  "Problem, scope, objectives, users · ER diagram · initial relational schema · cardinality and associative entities"],
+ ["WEEKS 8–11","Review 2 — Database","var(--sky)",
+  "Full FD list and data dictionary · DDL with all constraints and triggers · sp_book_seat / sp_check_in / sp_cancel_ticket · sample data · the eight report views · the seat race demonstrated in two live sessions"],
+ ["WEEKS 12–16","Review 3 — Application &amp; viva","var(--jade)",
+  "Flask app with role-based sections · CRUD, search, validation, reporting, error handling · test log covering every boundary case · source, script, screens, report, viva"]];
+document.getElementById('road').innerHTML=ROAD.map(([w,t,c,d])=>
+ `<div class="card" style="padding:12px 15px"><span class="bar" style="background:${c}"></span>
+  <div style="display:grid;grid-template-columns:190px 1fr;gap:14px;align-items:center">
+   <div><div style="font-family:var(--mono);font-size:8.5px;letter-spacing:.15em;color:${c}">${w}</div>
+   <div style="font-weight:650;font-size:13.5px;margin-top:2px">${t}</div></div>
+   <div style="font-size:12.5px;color:var(--ink2)">${d}</div></div></div>`).join('');
+
+/* ============ concurrency ============ */
+const STEPS=[
+ {t:'t1',a:'BEGIN;  SELECT … seat 14A FOR UPDATE;  → 0 rows',b:'',
+  n:'T1 takes an exclusive lock on seat 14A and finds it free.'},
+ {t:'t2',a:'',b:'BEGIN;  SELECT … FOR UPDATE;   ⏳ BLOCKED',cls:'fail',
+  n:'T2 issues the same locking read — and blocks. Without FOR UPDATE it would also have read "free". This is the whole game.'},
+ {t:'t3',a:"SELECT COUNT(*) … → 179 / 180 seats sold",b:'⏳ still waiting',
+  n:'T1 checks capacity under the same lock: one seat remains.'},
+ {t:'t4',a:'INSERT INTO ticket(… seat 14A …);  COMMIT;  ✔',b:'',cls:'ok1',
+  n:'T1 commits. The lock is released and the row becomes visible.'},
+ {t:'t5',a:'',b:'→ resumes: 1 row (seat now taken)',
+  n:'T2 wakes and reads the committed truth, not a stale snapshot.'},
+ {t:'t6',a:'',b:'INSERT … 14A;  ✕ duplicate key uq_ticket_flight_seat',cls:'fail',
+  n:'Even had T2 proceeded, UNIQUE(flight_id, seat_id) rejects it. The backstop holds.'},
+ {t:'t7',a:'',b:'ROLLBACK; → offer 14C;  COMMIT;  ✔',cls:'ok',
+  n:'The app catches the violation and books the next free seat. Nobody is double-seated; nobody is turned away.'}];
+(function(){
+  const box=document.getElementById('txn'), narr=document.getElementById('narr');
+  const cells=[];
+  STEPS.forEach(s=>{
+    const A=document.createElement('div');A.className='c'+(s.cls==='ok1'?' ok':'');A.textContent=s.a;
+    const T=document.createElement('div');T.className='c t';T.textContent=s.t;
+    const B=document.createElement('div');B.className='c b '+(s.cls&&s.cls!=='ok1'?s.cls:'');B.textContent=s.b;
+    box.append(A,T,B);cells.push([A,B]);
+  });
+  let i=-1,tm=null;
+  const show=n=>{i=n;cells.forEach(([a,b],k)=>{a.classList.toggle('live',k<=i);b.classList.toggle('live',k<=i);});
+    if(i>=0)narr.textContent=STEPS[i].n;};
+  const reset=()=>{clearInterval(tm);tm=null;i=-1;
+    cells.forEach(([a,b])=>{a.classList.remove('live');b.classList.remove('live');});
+    narr.textContent='Both transactions begin. Seat 14A is free; one seat remains.';
+    run.textContent='▶ Run the race';};
+  step.onclick=()=>{clearInterval(tm);tm=null;run.textContent='▶ Run the race';
+    show(i+1>=STEPS.length?0:i+1);};
+  document.getElementById('reset').onclick=reset;
+  run.onclick=function(){
+    if(tm){reset();return;}
+    if(i>=STEPS.length-1)show(-1);
+    this.textContent='■ Stop';
+    tm=setInterval(()=>{if(i>=STEPS.length-1){clearInterval(tm);tm=null;
+      run.textContent='▶ Run the race';return;}show(i+1);},1500);
+    show(i+1);
+  };
+})();
+</script>
+</body>
+</html>

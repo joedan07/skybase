@@ -1,0 +1,177 @@
+<svg class="er" width="1300" height="816" viewBox="0 0 1300 816" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Entity relationship diagram: nine relations">
+<style><![CDATA[
+.er{width:1300px;height:auto;font-family:Inter,system-ui,sans-serif}
+.er .ebox{filter:drop-shadow(0 8px 18px rgba(0,0,0,.55))}
+.er .et{font-size:13px;font-weight:800;letter-spacing:.07em}
+.er text{font-size:11.5px;fill:#c9d3e2;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace}
+.er .bdg{font-size:8px;font-weight:700;letter-spacing:.08em}
+.er .pk{fill:#ffb347}.er .fk{fill:#7fb3f0}.er .uq{fill:#b58ce0}.er .at{fill:#9db0ca}
+.er .link{fill:none;stroke:#5c7899;stroke-width:1.7}
+.er .foot{fill:none;stroke:#9ab8da;stroke-width:1.8}
+.er .rl{font-size:10.5px;fill:#93abc8;font-style:italic;font-family:Inter,system-ui,sans-serif}
+.er .lgd{font-size:10.5px;fill:#ffb347;letter-spacing:.1em;font-family:'JetBrains Mono',monospace}
+.er .lgd2{font-size:10px;fill:#6b7689;letter-spacing:.04em;font-family:'JetBrains Mono',monospace}
+
+]]></style>
+<rect width="1300" height="816" fill="#07080b"/>
+
+<defs>
+<linearGradient id="gv" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#241b34"/><stop offset="1" stop-color="#150f20"/></linearGradient>
+<linearGradient id="gc" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#2b2213" stop-opacity=".95"/><stop offset="1" stop-color="#17120a"/></linearGradient>
+<linearGradient id="gg" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0" stop-color="#16301f"/><stop offset="1" stop-color="#0c1a12"/></linearGradient>
+</defs>
+<g class="ent">
+<rect class="ebox" x="40" y="40" width="258" height="135.5" rx="10" fill="url(#gv)" stroke="#b58ce0"/>
+<rect x="40" y="40" width="258" height="30" rx="10" fill="#b58ce0" fill-opacity=".14"/>
+<path d="M40,70 h258" stroke="#b58ce0" stroke-opacity=".5" stroke-width="1"/>
+<text class="et" x="52" y="60" fill="#b58ce0">AIRPORT</text>
+<text class="bdg pk" x="52" y="90">PK</text>
+<text class="pk" x="80" y="90">airport_id</text>
+<text class="bdg uq" x="52" y="107.5">AK</text>
+<text class="uq" x="80" y="107.5">iata_code</text>
+<text class="at" x="80" y="125.0">name</text>
+<text class="at" x="80" y="142.5">city</text>
+<text class="at" x="80" y="160.0">tz_offset_min</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="348" y="40" width="258" height="153.0" rx="10" fill="url(#gv)" stroke="#b58ce0"/>
+<rect x="348" y="40" width="258" height="30" rx="10" fill="#b58ce0" fill-opacity=".14"/>
+<path d="M348,70 h258" stroke="#b58ce0" stroke-opacity=".5" stroke-width="1"/>
+<text class="et" x="360" y="60" fill="#b58ce0">ROUTE</text>
+<text class="bdg pk" x="360" y="90">PK</text>
+<text class="pk" x="388" y="90">route_id</text>
+<text class="bdg fk" x="360" y="107.5">FK</text>
+<text class="fk" x="388" y="107.5">origin_id</text>
+<text class="bdg fk" x="360" y="125.0">FK</text>
+<text class="fk" x="388" y="125.0">dest_id</text>
+<text class="at" x="388" y="142.5">distance_km</text>
+<text class="at" x="388" y="160.0">block_min</text>
+<text class="bdg uq" x="360" y="177.5">AK</text>
+<text class="uq" x="388" y="177.5">(origin_id, dest_id)</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="992" y="40" width="258" height="118.0" rx="10" fill="url(#gv)" stroke="#b58ce0"/>
+<rect x="992" y="40" width="258" height="30" rx="10" fill="#b58ce0" fill-opacity=".14"/>
+<path d="M992,70 h258" stroke="#b58ce0" stroke-opacity=".5" stroke-width="1"/>
+<text class="et" x="1004" y="60" fill="#b58ce0">AIRCRAFT</text>
+<text class="bdg pk" x="1004" y="90">PK</text>
+<text class="pk" x="1032" y="90">aircraft_id</text>
+<text class="bdg uq" x="1004" y="107.5">AK</text>
+<text class="uq" x="1032" y="107.5">tail_number</text>
+<text class="at" x="1032" y="125.0">model</text>
+<text class="at" x="1032" y="142.5">in_service</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="992" y="300" width="258" height="153.0" rx="10" fill="url(#gv)" stroke="#b58ce0"/>
+<rect x="992" y="300" width="258" height="30" rx="10" fill="#b58ce0" fill-opacity=".14"/>
+<path d="M992,330 h258" stroke="#b58ce0" stroke-opacity=".5" stroke-width="1"/>
+<text class="et" x="1004" y="320" fill="#b58ce0">SEAT</text>
+<text class="bdg pk" x="1004" y="350">PK</text>
+<text class="pk" x="1032" y="350">seat_id</text>
+<text class="bdg fk" x="1004" y="367.5">FK</text>
+<text class="fk" x="1032" y="367.5">aircraft_id</text>
+<text class="at" x="1032" y="385.0">seat_no</text>
+<text class="at" x="1032" y="402.5">cabin</text>
+<text class="at" x="1032" y="420.0">is_exit_row</text>
+<text class="bdg uq" x="1004" y="437.5">AK</text>
+<text class="uq" x="1032" y="437.5">(aircraft_id, seat_no)</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="670" y="40" width="258" height="205.5" rx="10" fill="url(#gc)" stroke="#ffb347"/>
+<rect x="670" y="40" width="258" height="30" rx="10" fill="#ffb347" fill-opacity=".14"/>
+<path d="M670,70 h258" stroke="#ffb347" stroke-opacity=".5" stroke-width="1"/>
+<text class="et" x="682" y="60" fill="#ffb347">FLIGHT</text>
+<text class="bdg pk" x="682" y="90">PK</text>
+<text class="pk" x="710" y="90">flight_id</text>
+<text class="at" x="710" y="107.5">flight_no</text>
+<text class="bdg fk" x="682" y="125.0">FK</text>
+<text class="fk" x="710" y="125.0">route_id</text>
+<text class="bdg fk" x="682" y="142.5">FK</text>
+<text class="fk" x="710" y="142.5">aircraft_id</text>
+<text class="at" x="710" y="160.0">sched_dep / sched_arr</text>
+<text class="at" x="710" y="177.5">base_fare</text>
+<text class="at" x="710" y="195.0">gate / status</text>
+<text class="at" x="710" y="212.5">dep_date  ← GENERATED</text>
+<text class="bdg uq" x="682" y="230.0">AK</text>
+<text class="uq" x="710" y="230.0">(flight_no, dep_date)</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="40" y="300" width="258" height="135.5" rx="10" fill="url(#gc)" stroke="#ffb347"/>
+<rect x="40" y="300" width="258" height="30" rx="10" fill="#ffb347" fill-opacity=".14"/>
+<path d="M40,330 h258" stroke="#ffb347" stroke-opacity=".5" stroke-width="1"/>
+<text class="et" x="52" y="320" fill="#ffb347">PASSENGER</text>
+<text class="bdg pk" x="52" y="350">PK</text>
+<text class="pk" x="80" y="350">passenger_id</text>
+<text class="bdg uq" x="52" y="367.5">AK</text>
+<text class="uq" x="80" y="367.5">email</text>
+<text class="at" x="80" y="385.0">password_hash</text>
+<text class="at" x="80" y="402.5">full_name / phone</text>
+<text class="at" x="80" y="420.0">role  ← RBAC</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="348" y="300" width="258" height="135.5" rx="10" fill="url(#gc)" stroke="#ffb347"/>
+<rect x="348" y="300" width="258" height="30" rx="10" fill="#ffb347" fill-opacity=".14"/>
+<path d="M348,330 h258" stroke="#ffb347" stroke-opacity=".5" stroke-width="1"/>
+<text class="et" x="360" y="320" fill="#ffb347">BOOKING</text>
+<text class="bdg pk" x="360" y="350">PK</text>
+<text class="pk" x="388" y="350">booking_id</text>
+<text class="bdg uq" x="360" y="367.5">AK</text>
+<text class="uq" x="388" y="367.5">pnr</text>
+<text class="bdg fk" x="360" y="385.0">FK</text>
+<text class="fk" x="388" y="385.0">passenger_id</text>
+<text class="at" x="388" y="402.5">booked_at</text>
+<text class="at" x="388" y="420.0">status</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="348" y="572" width="258" height="135.5" rx="10" fill="url(#gc)" stroke="#ffb347"/>
+<rect x="348" y="572" width="258" height="30" rx="10" fill="#ffb347" fill-opacity=".14"/>
+<path d="M348,602 h258" stroke="#ffb347" stroke-opacity=".5" stroke-width="1"/>
+<text class="et" x="360" y="592" fill="#ffb347">PAYMENT</text>
+<text class="bdg pk" x="360" y="622">PK</text>
+<text class="pk" x="388" y="622">payment_id</text>
+<text class="bdg fk" x="360" y="639.5">FK</text>
+<text class="fk" x="388" y="639.5">booking_id</text>
+<text class="bdg uq" x="360" y="657.0">AK</text>
+<text class="uq" x="388" y="657.0">txn_ref</text>
+<text class="at" x="388" y="674.5">amount  ← negative = refund</text>
+<text class="at" x="388" y="692.0">method / paid_at</text>
+</g>
+<g class="ent">
+<rect class="ebox" x="670" y="300" width="258" height="205.5" rx="10" fill="url(#gg)" stroke="#2fd98a"/>
+<rect x="670" y="300" width="258" height="30" rx="10" fill="#2fd98a" fill-opacity=".14"/>
+<path d="M670,330 h258" stroke="#2fd98a" stroke-opacity=".5" stroke-width="1"/>
+<text class="et" x="682" y="320" fill="#2fd98a">TICKET  ◆</text>
+<text class="bdg pk" x="682" y="350">PK</text>
+<text class="pk" x="710" y="350">ticket_id</text>
+<text class="bdg uq" x="682" y="367.5">AK</text>
+<text class="uq" x="710" y="367.5">ticket_no</text>
+<text class="bdg fk" x="682" y="385.0">FK</text>
+<text class="fk" x="710" y="385.0">booking_id</text>
+<text class="bdg fk" x="682" y="402.5">FK</text>
+<text class="fk" x="710" y="402.5">flight_id</text>
+<text class="bdg fk" x="682" y="420.0">FK</text>
+<text class="fk" x="710" y="420.0">passenger_id</text>
+<text class="bdg fk" x="682" y="437.5">FK</text>
+<text class="fk" x="710" y="437.5">seat_id  (nullable)</text>
+<text class="at" x="710" y="455.0">cabin / fare_paid</text>
+<text class="at" x="710" y="472.5">status / checked_in_at</text>
+<text class="bdg uq" x="682" y="490.0">AK</text>
+<text class="uq" x="710" y="490.0">(flight_id, seat_id) PARTIAL</text>
+</g>
+<path class="link" d="M298,80.65 L348,85.9"/><path class="foot" d="M311,72.65 L311,88.65"/><path class="foot" d="M335,76.9 L348,85.9 L335,94.9"/><path class="foot" d="M348,85.9 L335,85.9"/><text class="rl" x="310" y="64">origin</text>
+<path class="link" d="M298,137.56 L348,150.16"/><path class="foot" d="M311,129.56 L311,145.56"/><path class="foot" d="M335,141.16 L348,150.16 L335,159.16"/><path class="foot" d="M348,150.16 L335,150.16"/><text class="rl" x="312" y="144">dest</text>
+<path class="link" d="M606,101.2 L638,101.2 L638,101.65 L670,101.65"/><path class="foot" d="M619,93.2 L619,109.2"/><path class="foot" d="M657,92.65 L670,101.65 L657,110.65"/><path class="foot" d="M670,101.65 L657,101.65"/><text class="rl" x="604" y="104">flies</text>
+<path class="link" d="M992,99.0 L958,99.0 L958,122.2 L928,122.2"/><path class="foot" d="M979,91.0 L979,107.0"/><path class="foot" d="M941,113.2 L928,122.2 L941,131.2"/><path class="foot" d="M928,122.2 L941,122.2"/><text class="rl" x="896" y="90">operates</text>
+<path class="link" d="M1121.0,158.0 L1121.0,300"/><path class="foot" d="M1113.0,171.0 L1129.0,171.0"/><path class="foot" d="M1112.0,287 L1121.0,300 L1130.0,287"/><path class="foot" d="M1121.0,300 L1121.0,287"/><text class="rl" x="1128" y="256">has seat map</text>
+<path class="link" d="M747.4,245.5 L747.4,300"/><path class="foot" d="M739.4,258.5 L755.4,258.5"/><path class="foot" d="M738.4,287 L747.4,300 L756.4,287"/><path class="foot" d="M747.4,300 L747.4,287"/><text class="rl" x="756" y="298">carries</text>
+<path class="link" d="M298,347.425 L348,347.425"/><path class="foot" d="M311,339.425 L311,355.425"/><path class="foot" d="M335,338.425 L348,347.425 L335,356.425"/><path class="foot" d="M348,347.425 L335,347.425"/><text class="rl" x="312" y="336">makes</text>
+<path class="link" d="M606,354.2 L670,386.31"/><path class="foot" d="M619,346.2 L619,362.2"/><path class="foot" d="M657,377.31 L670,386.31 L657,395.31"/><path class="foot" d="M670,386.31 L657,386.31"/><text class="rl" x="620" y="348">issues</text>
+<path class="link" d="M199.96,435.5 L199.96,501.5 L634,501.5 L634,476.73 L670,476.73"/><path class="foot" d="M191.96,448.5 L207.96,448.5"/><path class="foot" d="M657,467.73 L670,476.73 L657,485.73"/><path class="foot" d="M670,476.73 L657,476.73"/><text class="rl" x="280" y="495.5">travels on</text>
+<path class="link" d="M992,376.5 L958,376.5 L958,361.65 L928,361.65"/><path class="foot" d="M979,368.5 L979,384.5"/><path class="foot" d="M941,353.65 L941,369.65"/><path class="foot" d="M950,361.65 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0"/><text class="rl" x="872" y="346">is assigned to</text>
+<path class="link" d="M451.2,435.5 L451.2,572"/><path class="foot" d="M443.2,448.5 L459.2,448.5"/><path class="foot" d="M442.2,559 L451.2,572 L460.2,559"/><path class="foot" d="M451.2,572 L451.2,559"/><text class="rl" x="458" y="554">is settled by</text>
+<g class="legend"><text class="lgd" x="40" y="762">9 RELATIONS  ·  11 RELATIONSHIPS  ·  3NF / BCNF  ·  PK primary key  ·  FK foreign key  ·  AK alternate (unique) key  ·  ◆ associative entity</text>
+<text class="lgd2" x="40" y="784">VIOLET = fixed reference data, seeded once and never written by the application.   AMBER = operational.   GREEN = the associative hub.</text></g>
+</svg>

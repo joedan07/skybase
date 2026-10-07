@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}{{ code }} · SkyBase{% endblock %}
+
+{% block body %}
+<section class="err wrap">
+  <div>
+    <div class="err__code">{{ code }}</div>
+    <h2 style="margin:4px 0 10px">{{ title }}</h2>
+    <p class="lede" style="margin-inline:auto">{{ msg }}</p>
+    <div class="stack" style="justify-content:center;margin-top:22px">
+      <a class="btn btn--ghost btn--sm" href="{{ url_for('home') }}">Back to departures</a>
+      {% if me %}<a class="btn btn--sm" href="{{ url_for('trips') }}">My trips</a>{% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}

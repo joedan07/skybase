@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}SkyBase — three cities, one database{% endblock %}
+
+{% block body %}
+<section class="hero wrap">
+  <div class="hero__kicker"><span class="tag tag--sodium">Hyderabad · Mumbai · Delhi</span></div>
+  <h1>Night flights,<br><em>honest seats</em></h1>
+  <p class="hero__sub">Three airports, six routes, three airframes — and a database that
+    will not sell the same seat twice, <span class="serif">no matter who clicks first.</span></p>
+
+  <form class="slip" action="{{ url_for('search') }}" method="get">
+    <div class="slip__head">
+      <span class="tag tag--sodium">Departure slip</span>
+      <span class="tag">SB · {{ now.strftime('%d %b %Y') }}</span>
+    </div>
+    <div class="slip__body">
+      <div class="slip__grid">
+        <label class="field field--mono">
+          <span>From</span>
+          <select class="input" name="origin" id="origin" required>
+            <option value="">Select</option>
+            {% for a in airports %}
+            <option value="{{ a.iata_code }}">{{ a.iata_code }} — {{ a.city }}</option>
+            {% endfor %}
+          </select>
+        </label>
+
+        <label class="field field--mono">
+          <span>To</span>
+          <select class="input" name="dest" id="dest" required>
+            <option value="">Select</option>
+            {% for a in airports %}
+            <option value="{{ a.iata_code }}">{{ a.iata_code }} — {{ a.city }}</option>
+            {% endfor %}
+          </select>
+        </label>
+
+        <label class="field field--mono">
+          <span>Date</span>
+          <input class="input" type="date" name="date" value="{{ today }}" min="{{ today }}" required>
+        </label>
+
+        <label class="field field--mono">
+          <span>Cabin</span>
+          <select class="input" name="cabin">
+            <option value="ECONOMY">Economy</option>
+            <option value="BUSINESS">Business</option>
+          </select>
+        </label>
+
+        <div class="field"><button class="btn btn--block" type="submit">Search</button></div>
+      </div>
+    </div>
+  </form>
+</section>
+
+<section class="section wrap">
+  <div class="section__head stack">
+    <div>
+      <h2>Next departures</h2>
+      <p class="lede">Straight off <code>v_seat_availability</code> — live seat counts, not a cached number.</p>
+    </div>
+    <span class="pill pill--threshold push"><i class="dot dot--live"></i>Live</span>
+  </div>
+
+  <div class="board">
+    <div class="board__head">
+      <span class="tag tag--sodium">Departures</span>
+      <span class="tag push">Gate · Seats · Status</span>
+    </div>
+    <div class="board__rows">
+      {% for f in board %}
+      <div class="board__row">
+        <span class="flap flap--sodium" data-flap="{{ f.flight_no }}"></span>
+        <span class="board__dest">
+          <span class="iata">{{ f.destination }}</span>
+          <span class="city">{{ f.to_city }}</span>
+        </span>
+        <span class="mono" style="font-size:13px;color:var(--fg)">
+          {{ f.sched_dep|hhmm }} <span class="muted" style="font-size:10px">{{ f.sched_dep|daymon }}</span>
+        </span>
+        <span class="board__meta">
+          <span>{{ f.gate or '—' }}</span>
+          {% if f.seats_free > 9 %}
+            <span class="pill pill--threshold">{{ f.seats_free }} free</span>
+          {% elif f.seats_free > 0 %}
+            <span class="pill pill--sodium">{{ f.seats_free }} left</span>
+          {% else %}
+            <span class="pill pill--beacon">Full</span>
+          {% endif %}
+          <a class="btn btn--ghost btn--sm" href="{{ url_for('flight_detail', flight_id=f.flight_id) }}">Pick seat</a>
+        </span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="section wrap">
+  <div class="section__head">
+    <h2>The whole network</h2>
+    <p class="lede">Six directed routes among three airports — fixed reference data, seeded once.
+      Every ordered pair, so <code>UNIQUE(origin_id, dest_id)</code> is exactly full.</p>
+  </div>
+
+  <div class="grid grid--3">
+    {% for r in routes %}
+    <a class="card" href="{{ url_for('search', origin=r.origin, dest=r.destination, date=today) }}">
+      <div class="hop">
+        <span class="iata">{{ r.origin }}</span>
+        <span class="hop__arc">
+          <svg viewBox="0 0 100 20" preserveAspectRatio="none">
+            <path d="M2,16 Q50,-6 98,16"/>
+            <polygon class="plane" points="0,-3 7,0 0,3 2,0" transform="translate(50,3)"/>
+          </svg>
+        </span>
+        <span class="iata">{{ r.destination }}</span>
+      </div>
+      <p class="tag" style="margin-bottom:12px">{{ r.from_city }} → {{ r.to_city }}</p>
+      <div class="stack">
+        <span class="pill">{{ r.distance_km }} km</span>
+        <span class="pill">{{ r.block_min|dur }}</span>
+        {% if r.from_fare %}
+        <span class="pill pill--sodium push">from ₹{{ r.from_fare|rupees }}</span>
+        {% else %}
+        <span class="pill pill--beacon push">no inventory</span>
+        {% endif %}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="section wrap">
+  <div class="grid grid--3">
+    <div class="card">
+      <span class="tag tag--sodium">One seat, one passenger</span>
+      <h3 style="margin:8px 0">A promise the database keeps</h3>
+      <p class="lede" style="font-size:13.5px">A partial unique index on
+        <code>(flight_id, seat_id)</code> makes two live tickets on one seat
+        unrepresentable — not unlikely, <em>impossible</em>.</p>
+    </div>
+    <div class="card">
+      <span class="tag tag--taxi">Frozen fares</span>
+      <h3 style="margin:8px 0">Your price cannot change later</h3>
+      <p class="lede" style="font-size:13.5px">The fare is copied onto the ticket at purchase.
+        Repricing a flight tomorrow can never rewrite what you paid today.</p>
+    </div>
+    <div class="card">
+      <span class="tag tag--threshold">All or nothing</span>
+      <h3 style="margin:8px 0">Booking is one transaction</h3>
+      <p class="lede" style="font-size:13.5px">Booking, tickets and payment commit together.
+        A failure half-way leaves no orphan rows behind.</p>
+    </div>
+  </div>
+</section>
+{% endblock %}

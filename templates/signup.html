@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Sign up · SkyBase{% endblock %}
+
+{% block body %}
+<section class="auth wrap">
+  <div class="auth__card slip">
+    <div class="slip__head">
+      <span class="tag tag--sodium">New account</span>
+      <span class="tag">Step 1 of 1</span>
+    </div>
+    <div class="slip__body">
+      <h2 style="font-size:24px;margin-bottom:6px">Create an account</h2>
+      <p class="lede" style="font-size:13.5px;margin-bottom:18px">
+        One row in <code>passenger</code> — you are both the account and the traveller.
+      </p>
+
+      <form method="post">
+        <label class="field">
+          <span>Full name</span>
+          <input class="input" name="full_name" value="{{ full_name or '' }}"
+                 autocomplete="name" required autofocus placeholder="Asha Rao" minlength="2">
+        </label>
+        <label class="field">
+          <span>Email</span>
+          <input class="input" type="email" name="email" value="{{ email or '' }}"
+                 autocomplete="email" required placeholder="you@example.com">
+        </label>
+        <label class="field field--mono">
+          <span>Phone — 10 digits, optional</span>
+          <input class="input" name="phone" value="{{ phone or '' }}" inputmode="numeric"
+                 pattern="[0-9]{10}" autocomplete="tel" placeholder="9876543210">
+        </label>
+        <label class="field">
+          <span>Password — 8 characters or more</span>
+          <input class="input" type="password" name="password" required
+                 minlength="8" autocomplete="new-password" placeholder="••••••••">
+        </label>
+        <button class="btn btn--block">Create account</button>
+      </form>
+
+      <p class="tag" style="text-align:center;margin-top:16px">
+        Already flying with us? <a href="{{ url_for('login') }}" style="color:var(--sodium)">Sign in</a>
+      </p>
+    </div>
+  </div>
+</section>
+{% endblock %}

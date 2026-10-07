@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}My trips · SkyBase{% endblock %}
+
+{% block body %}
+<section class="wrap" style="padding-top:28px">
+  <div class="section__head">
+    <span class="tag tag--sodium">{{ me.full_name }}</span>
+    <h2 style="margin-top:6px">My trips</h2>
+    <p class="lede">Every booking on this account, newest first.</p>
+  </div>
+
+  {% if not bookings %}
+    <div class="empty">
+      <b>No bookings yet</b>
+      Search a route and pick a seat — it takes about fifteen seconds.
+      <div style="margin-top:14px"><a class="btn btn--sm" href="{{ url_for('home') }}">Find a flight</a></div>
+    </div>
+  {% else %}
+  <div class="tw">
+    <table>
+      <thead>
+        <tr><th>PNR</th><th>Legs</th><th>Departs</th><th>Pax</th>
+            <th class="num">Paid</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for b in bookings %}
+        <tr>
+          <td><b class="mono" style="letter-spacing:.1em">{{ b.pnr }}</b></td>
+          <td class="mono">{{ b.legs or '—' }}</td>
+          <td>{% if b.departs %}{{ b.departs|daymon }} <span class="muted mono">{{ b.departs|hhmm }}</span>{% else %}—{% endif %}</td>
+          <td class="num">{{ b.pax }}</td>
+          <td class="num">₹{{ b.total|rupees }}</td>
+          <td>
+            {% if b.status == 'CANCELLED' %}
+              <span class="pill pill--beacon">Cancelled</span>
+            {% else %}
+              <span class="pill pill--threshold">Confirmed</span>
+            {% endif %}
+          </td>
+          <td><a class="btn btn--ghost btn--sm" href="{{ url_for('boarding_pass', pnr=b.pnr) }}">Open</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <details class="sqlbox">
+    <summary>The query behind this list</summary>
+    <pre>-- string_agg collapses the legs of a multi-flight PNR into one cell;
+-- the FILTER keeps cancelled tickets out of the total without a subquery.
+SELECT b.pnr, b.booked_at, b.status,
+       count(t.ticket_id)  AS pax,
+       min(f.sched_dep)    AS departs,
+       string_agg(DISTINCT o.iata_code || '&rarr;' || d.iata_code, ', ') AS legs,
+       COALESCE(sum(t.fare_paid) FILTER (WHERE t.status &lt;&gt; 'CANCELLED'), 0) AS total
+  FROM booking b
+  LEFT JOIN ticket  t ON t.booking_id = b.booking_id
+  LEFT JOIN flight  f ON f.flight_id  = t.flight_id
+  LEFT JOIN route   r ON r.route_id   = f.route_id
+  LEFT JOIN airport o ON o.airport_id = r.origin_id
+  LEFT JOIN airport d ON d.airport_id = r.dest_id
+ WHERE b.passenger_id = %s
+ GROUP BY b.booking_id
+ ORDER BY b.booked_at DESC;</pre>
+  </details>
+  {% endif %}
+</section>
+{% endblock %}

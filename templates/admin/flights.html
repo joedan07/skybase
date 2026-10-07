@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Flights · SkyBase Ops{% endblock %}
+
+{% block body %}
+<section class="wrap" style="padding-top:28px">
+  <div class="adm-head">
+    <div>
+      <span class="tag tag--beacon">Operations control</span>
+      <h1 style="margin-top:6px">Flight schedule</h1>
+      <p class="lede">FLIGHT is the only operational relation an admin writes.
+        Airports, routes, aircraft and seat maps are fixed reference data.</p>
+    </div>
+    <form class="stack push" method="get">
+      <label class="field field--mono" style="margin:0">
+        <span>Date</span>
+        <input class="input" type="date" name="date" value="{{ when }}" onchange="this.form.submit()">
+      </label>
+    </form>
+  </div>
+
+  <div class="slip" style="margin-bottom:24px">
+    <div class="slip__head">
+      <span class="tag tag--sodium">Add a flight</span>
+      <span class="tag">arrival is computed from route.block_min</span>
+    </div>
+    <div class="slip__body">
+      <form method="post" action="{{ url_for('admin_create_flight') }}">
+        <div class="slip__grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">
+          <label class="field field--mono"><span>Flight no</span>
+            <input class="input" name="flight_no" placeholder="SB105" pattern="[Ss][Bb][0-9]{3,4}" required></label>
+          <label class="field field--mono"><span>Route</span>
+            <select class="input" name="route_id" required>
+              {% for r in routes %}<option value="{{ r.route_id }}">{{ r.pair }}</option>{% endfor %}
+            </select></label>
+          <label class="field field--mono"><span>Aircraft</span>
+            <select class="input" name="aircraft_id" required>
+              {% for a in aircraft %}<option value="{{ a.aircraft_id }}">{{ a.tail_number }} · {{ a.seats }} seats</option>{% endfor %}
+            </select></label>
+          <label class="field field--mono"><span>Date</span>
+            <input class="input" type="date" name="dep_date" value="{{ when }}" required></label>
+          <label class="field field--mono"><span>Departs</span>
+            <input class="input" type="time" name="dep_time" value="08:00" required></label>
+          <label class="field field--mono"><span>Base fare ₹</span>
+            <input class="input" type="number" name="base_fare" value="4500" min="0" step="50" required></label>
+          <label class="field field--mono"><span>Gate</span>
+            <input class="input" name="gate" placeholder="A4" maxlength="4"></label>
+          <div class="field"><button class="btn btn--block">Add</button></div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% if not flights %}
+    <div class="empty"><b>No flights on {{ when }}</b>Add one above, or pick another date.</div>
+  {% else %}
+  <div class="tw">
+    <table>
+      <thead><tr><th>Flight</th><th>Route</th><th>Window</th><th>Airframe</th>
+                 <th>Load</th><th class="num">Fare</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        {% for f in flights %}
+        <tr>
+          <td><b class="mono">{{ f.flight_no }}</b>{% if f.gate %}<br><span class="muted tag">GATE {{ f.gate }}</span>{% endif %}</td>
+          <td><span class="iata">{{ f.origin }}</span> <span class="muted">→</span> <span class="iata">{{ f.destination }}</span></td>
+          <td class="mono">{{ f.sched_dep|hhmm }}–{{ f.sched_arr|hhmm }}</td>
+          <td><span class="mono" style="font-size:11px">{{ f.tail_number }}</span><br><span class="muted" style="font-size:11px">{{ f.model }}</span></td>
+          <td>
+            <span class="meter">
+              <span class="meter__rail"><span class="meter__fill {{ 'is-high' if f.load_factor_pct >= 70 else ('is-mid' if f.load_factor_pct >= 35 else 'is-low') }}"
+                    style="width:{{ f.load_factor_pct or 0 }}%"></span></span>
+              <span class="mono" style="font-size:11px">{{ f.seats_sold }}/{{ f.capacity }}</span>
+            </span>
+          </td>
+          <td class="num">₹{{ f.base_fare|rupees }}</td>
+          <td>
+            <form method="post" action="{{ url_for('admin_flight_status', flight_id=f.flight_id) }}">
+              <select class="input" name="status" onchange="this.form.submit()"
+                      style="min-height:30px;font-size:11px;padding:0 8px;font-family:var(--f-mono)">
+                {% for s in ['SCHEDULED','DELAYED','DEPARTED','ARRIVED','CANCELLED'] %}
+                <option value="{{ s }}" {{ 'selected' if f.status == s }}>{{ s|title }}</option>
+                {% endfor %}
+              </select>
+            </form>
+          </td>
+          <td><a class="btn btn--ghost btn--sm" href="{{ url_for('admin_manifest', flight_id=f.flight_id) }}">Manifest</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <details class="sqlbox">
+    <summary>Why adding a duplicate flight number fails</summary>
+    <pre>-- dep_date is GENERATED from sched_dep, so this alternate key can never
+-- drift out of step with the timestamp it is derived from:
+ALTER TABLE flight
+  ADD CONSTRAINT uq_flight_no_date UNIQUE (flight_no, dep_date);
+
+-- try to add SB101 twice on one date and the database refuses it with
+-- SQLSTATE 23505 before the application gets a say.</pre>
+  </details>
+  {% endif %}
+</section>
+{% endblock %}

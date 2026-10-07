@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}PNR {{ booking.pnr }} · SkyBase{% endblock %}
+
+{% block body %}
+<section class="wrap" style="padding-top:28px">
+  <div class="section__head stack">
+    <div>
+      <span class="tag tag--sodium">Booking reference</span>
+      <h2 style="margin-top:6px;letter-spacing:.12em">{{ booking.pnr }}</h2>
+      <p class="lede">Booked {{ booking.booked_at.strftime('%d %b %Y, %H:%M') }} ·
+        {{ tickets|length }} ticket{{ '' if tickets|length == 1 else 's' }} ·
+        paid ₹{{ booking.paid|rupees }}</p>
+    </div>
+    <div class="stack push">
+      {% if booking.status == 'CANCELLED' %}
+        <span class="pill pill--beacon">Cancelled</span>
+      {% else %}
+        <span class="pill pill--threshold"><i class="dot"></i>Confirmed</span>
+      {% endif %}
+      <a class="btn btn--ghost btn--sm" href="{{ url_for('trips') }}">All trips</a>
+    </div>
+  </div>
+
+  <div class="rows">
+    {% for t in tickets %}
+    <div class="pass">
+      <div class="pass__main">
+        <div class="pass__top">
+          <span class="tag tag--sodium">Boarding pass · {{ t.cabin|title }}</span>
+          <span class="tag mono">{{ t.ticket_no }}</span>
+        </div>
+
+        <div class="pass__route">
+          <div>
+            <div class="iata">{{ t.origin }}</div>
+            <div class="city">{{ t.from_city }}</div>
+          </div>
+          <span class="hop__arc" style="height:26px">
+            <svg viewBox="0 0 100 26" preserveAspectRatio="none">
+              <path d="M2,20 Q50,-5 98,20"/>
+              <polygon class="plane" points="0,-3.5 8,0 0,3.5 2.4,0" transform="translate(50,4)"/>
+            </svg>
+          </span>
+          <div style="text-align:right">
+            <div class="iata">{{ t.destination }}</div>
+            <div class="city">{{ t.to_city }}</div>
+          </div>
+        </div>
+
+        <div class="pass__fields">
+          <div class="pf"><span>Passenger</span><b style="font-size:13px">{{ t.full_name }}</b></div>
+          <div class="pf"><span>Flight</span><b>{{ t.flight_no }}</b></div>
+          <div class="pf"><span>Date</span><b style="font-size:13px">{{ t.sched_dep|daymon }}</b></div>
+          <div class="pf"><span>Departs</span><b>{{ t.sched_dep|hhmm }}</b></div>
+          <div class="pf"><span>Arrives</span><b>{{ t.sched_arr|hhmm }}</b></div>
+          <div class="pf"><span>Gate</span><b>{{ t.gate or '—' }}</b></div>
+          <div class="pf"><span>Seat</span>
+            <b style="color:var(--sodium)">{{ t.seat_no or '—' }}</b>
+            {% if t.is_exit_row %}<span class="tag tag--threshold">exit row</span>{% endif %}
+          </div>
+          <div class="pf"><span>Fare paid</span><b>₹{{ t.fare_paid|rupees }}</b></div>
+        </div>
+      </div>
+
+      <div class="pass__stub">
+        <div>
+          <span class="tag">Sequence</span>
+          <div class="iata" style="font-size:26px;color:var(--sodium)">{{ t.seat_no or '—' }}</div>
+          <div class="stack" style="justify-content:center;margin-top:8px">
+            {% if t.status == 'CANCELLED' %}
+              <span class="pill pill--beacon">Void</span>
+            {% elif t.status == 'CHECKED_IN' %}
+              <span class="pill pill--threshold">Checked in</span>
+            {% else %}
+              <span class="pill pill--sodium">Not checked in</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div style="flex:1">
+          <div class="barcode" data-barcode>{% for i in range(34) %}<i></i>{% endfor %}</div>
+          <div class="tag" style="text-align:center;margin-top:6px">{{ booking.pnr }}</div>
+        </div>
+
+        {% if t.status == 'CONFIRMED' and t.flight_status in ('SCHEDULED', 'DELAYED') %}
+        <form method="post" action="{{ url_for('do_check_in', ticket_id=t.ticket_id) }}">
+          <button class="btn btn--sm btn--block">Check in</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if booking.status != 'CANCELLED' %}
+  <div class="panel" style="padding:18px;margin-top:16px">
+    <div class="stack">
+      <div>
+        <h3>Cancel this booking</h3>
+        <p class="lede" style="font-size:13px;margin-top:4px">
+          Refund is computed from the fare <em>frozen on each ticket</em>: 90% back more than
+          24 hours before departure, 50% inside 24 hours, nothing once flown.
+          The seats are released and the refund is written as a negative payment row.
+        </p>
+      </div>
+      <form method="post" action="{{ url_for('cancel', booking_id=booking.booking_id) }}" class="push">
+        <button class="btn btn--danger" onclick="return confirm('Cancel PNR {{ booking.pnr }} and release its seats?')">
+          Cancel booking
+        </button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* Barcode bars: random heights, but seeded off the PNR so a given booking
+   always renders the same pass. */
+(function () {
+  let seed = [...'{{ booking.pnr }}'].reduce((a, c) => a + c.charCodeAt(0), 0);
+  const rnd = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+  document.querySelectorAll('[data-barcode] i').forEach((b) => {
+    b.style.height = (34 + rnd() * 66) + '%';
+    b.style.opacity = 0.45 + rnd() * 0.5;
+  });
+})();
+</script>
+{% endblock %}

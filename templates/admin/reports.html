@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Reports · SkyBase Ops{% endblock %}
+
+{% block body %}
+<section class="wrap" style="padding-top:28px">
+  <div class="adm-head">
+    <div>
+      <span class="tag tag--beacon">Operations control</span>
+      <h1 style="margin-top:6px">Reports</h1>
+      <p class="lede">Four SQL views, each exercising a different construct.
+        Open the disclosure under any table to read the query that produced it.</p>
+    </div>
+  </div>
+
+  <div class="section__head stack">
+    <div><h2>R-02 · Occupancy &amp; load factor</h2>
+      <p class="lede">Seats sold against capacity — and capacity is <code>COUNT(seat)</code>,
+        which is why no capacity column exists anywhere in the schema.</p></div>
+    <span class="pill pill--taxi push">COUNT · GROUP BY</span>
+  </div>
+  {% if not occupancy %}
+    <div class="empty"><b>Nothing sold yet</b>Make a booking and this fills in.</div>
+  {% else %}
+  <div class="tw">
+    <table>
+      <thead><tr><th>Flight</th><th>Date</th><th>Route</th><th>Airframe</th>
+                 <th>Load factor</th><th class="num">Sold</th><th class="num">Revenue</th></tr></thead>
+      <tbody>
+        {% for r in occupancy %}
+        <tr>
+          <td><b class="mono">{{ r.flight_no }}</b></td>
+          <td class="mono" style="font-size:11px">{{ r.dep_date }}</td>
+          <td><span class="iata">{{ r.origin }}</span> <span class="muted">→</span> <span class="iata">{{ r.destination }}</span></td>
+          <td class="muted" style="font-size:11.5px">{{ r.model }}</td>
+          <td><span class="meter">
+                <span class="meter__rail"><span class="meter__fill {{ 'is-high' if r.load_factor_pct >= 70 else ('is-mid' if r.load_factor_pct >= 35 else 'is-low') }}"
+                      style="width:{{ r.load_factor_pct }}%"></span></span>
+                <span class="mono" style="font-size:11px">{{ r.load_factor_pct }}%</span></span></td>
+          <td class="num">{{ r.seats_sold }}/{{ r.capacity }}</td>
+          <td class="num">₹{{ r.gross_revenue|rupees }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <details class="sqlbox"><summary>Query</summary><pre>{{ sql.occupancy }}</pre></details>
+  {% endif %}
+
+  <div class="section__head stack" style="margin-top:34px">
+    <div><h2>R-03 · Route demand</h2>
+      <p class="lede">All six routes, ranked by revenue. The outer joins keep routes
+        with no traffic in the report — an empty route is a finding, not a missing row.</p></div>
+    <span class="pill pill--taxi push">LEFT JOIN · GROUP BY</span>
+  </div>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Pair</th><th>Cities</th><th class="num">Km</th><th class="num">Flights</th>
+                 <th class="num">Pax</th><th class="num">Revenue</th><th class="num">Avg fare</th></tr></thead>
+      <tbody>
+        {% for r in demand %}
+        <tr>
+          <td><b class="iata">{{ r.pair }}</b></td>
+          <td style="font-size:12.5px">{{ r.from_city }} → {{ r.to_city }}</td>
+          <td class="num">{{ r.distance_km }}</td>
+          <td class="num">{{ r.flights_operated }}</td>
+          <td class="num"><b>{{ r.passengers }}</b></td>
+          <td class="num">₹{{ r.revenue|rupees }}</td>
+          <td class="num">{% if r.passengers %}₹{{ r.avg_fare|rupees }}{% else %}—{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <details class="sqlbox"><summary>Query</summary><pre>{{ sql.demand }}</pre></details>
+
+  <div class="grid grid--2" style="margin-top:34px;align-items:start">
+    <div>
+      <div class="section__head"><h2>R-04 · Revenue</h2>
+        <p class="lede">A refund is a negative row, so net falls out of one <code>SUM</code>.</p></div>
+      {% if not revenue %}
+        <div class="empty"><b>No payments yet</b></div>
+      {% else %}
+      <div class="tw">
+        <table>
+          <thead><tr><th>Day</th><th class="num">Gross</th><th class="num">Refunds</th><th class="num">Net</th></tr></thead>
+          <tbody>
+            {% for r in revenue %}
+            <tr>
+              <td class="mono" style="font-size:11.5px">{{ r.day }}</td>
+              <td class="num">₹{{ r.gross|rupees }}</td>
+              <td class="num" style="color:{{ 'var(--beacon)' if r.refunds else 'var(--fg-3)' }}">₹{{ r.refunds|rupees }}</td>
+              <td class="num"><b>₹{{ r.net|rupees }}</b></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <details class="sqlbox"><summary>Query</summary><pre>{{ sql.revenue }}</pre></details>
+      {% endif %}
+    </div>
+
+    <div>
+      <div class="section__head"><h2>Cabin mix</h2>
+        <p class="lede">Business sells at 2.4× the economy fare, frozen per ticket.</p></div>
+      {% if not cabins %}
+        <div class="empty"><b>No tickets yet</b></div>
+      {% else %}
+      <div class="tw">
+        <table>
+          <thead><tr><th>Cabin</th><th class="num">Tickets</th><th class="num">Revenue</th><th class="num">Avg fare</th></tr></thead>
+          <tbody>
+            {% for c in cabins %}
+            <tr>
+              <td>{% if c.cabin == 'BUSINESS' %}<span class="pill pill--sodium">Business</span>
+                  {% else %}<span class="pill">Economy</span>{% endif %}</td>
+              <td class="num">{{ c.tickets }}</td>
+              <td class="num">₹{{ c.revenue|rupees }}</td>
+              <td class="num">₹{{ c.avg_fare|rupees }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <details class="sqlbox"><summary>Query</summary><pre>{{ sql.cabins }}</pre></details>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}

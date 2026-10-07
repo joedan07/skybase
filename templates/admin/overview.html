@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Operations · SkyBase{% endblock %}
+
+{% block body %}
+<section class="wrap" style="padding-top:28px">
+  <div class="adm-head">
+    <div>
+      <span class="tag tag--beacon">Operations control</span>
+      <h1 style="margin-top:6px">Today on the apron</h1>
+      <p class="lede">{{ now.strftime('%A %d %B %Y') }} · signed in as {{ me.full_name }}</p>
+    </div>
+    <div class="stack push">
+      <a class="btn btn--ghost btn--sm" href="{{ url_for('admin_lab') }}">Concurrency lab</a>
+      <a class="btn btn--sm" href="{{ url_for('admin_flights') }}">Manage flights</a>
+    </div>
+  </div>
+
+  <div class="kpis" style="margin-bottom:26px">
+    <div class="kpi"><span>Flights today</span><b>{{ kpi.flights_today }}</b><em>scheduled rotations</em></div>
+    <div class="kpi"><span>Bookings today</span><b>{{ kpi.bookings_today }}</b><em>confirmed PNRs</em></div>
+    <div class="kpi"><span>Live tickets</span><b>{{ kpi.live_tickets }}</b><em>not cancelled</em></div>
+    <div class="kpi"><span>Net revenue</span><b>₹{{ kpi.net_revenue|rupees }}</b><em>payments less refunds</em></div>
+    <div class="kpi"><span>Avg load factor</span><b>{{ kpi.avg_load or 0 }}%</b><em>last 3 days flown</em></div>
+    <div class="kpi"><span>Customers</span><b>{{ kpi.customers }}</b><em>registered accounts</em></div>
+  </div>
+
+  <div class="section__head stack">
+    <div><h2>Departure board</h2><p class="lede">Every rotation dated today, with live load.</p></div>
+    <span class="pill pill--threshold push"><i class="dot dot--live"></i>v_flight_occupancy</span>
+  </div>
+
+  {% if not departures %}
+    <div class="empty"><b>No flights dated today</b>The seed runs from three days ago to nine days out.</div>
+  {% else %}
+  <div class="tw" style="margin-bottom:26px">
+    <table>
+      <thead><tr><th>Flight</th><th>Route</th><th>Departs</th><th>Status</th>
+                 <th>Load</th><th class="num">Sold</th><th class="num">Revenue</th><th></th></tr></thead>
+      <tbody>
+        {% for f in departures %}
+        <tr>
+          <td><b class="mono">{{ f.flight_no }}</b></td>
+          <td><span class="iata">{{ f.origin }}</span> <span class="muted">→</span> <span class="iata">{{ f.destination }}</span></td>
+          <td class="mono">{{ f.sched_dep|hhmm }}</td>
+          <td>
+            {% if f.status == 'CANCELLED' %}<span class="pill pill--beacon">Cancelled</span>
+            {% elif f.status == 'DELAYED' %}<span class="pill pill--sodium">Delayed</span>
+            {% elif f.status in ('DEPARTED','ARRIVED') %}<span class="pill pill--taxi">{{ f.status|title }}</span>
+            {% else %}<span class="pill pill--threshold">Scheduled</span>{% endif %}
+          </td>
+          <td>
+            <span class="meter">
+              <span class="meter__rail">
+                <span class="meter__fill {{ 'is-high' if f.load_factor_pct >= 70 else ('is-mid' if f.load_factor_pct >= 35 else 'is-low') }}"
+                      style="width:{{ f.load_factor_pct or 0 }}%"></span>
+              </span>
+              <span class="mono" style="font-size:11px">{{ f.load_factor_pct or 0 }}%</span>
+            </span>
+          </td>
+          <td class="num">{{ f.seats_sold }}/{{ f.capacity }}</td>
+          <td class="num">₹{{ f.gross_revenue|rupees }}</td>
+          <td><a class="btn btn--ghost btn--sm" href="{{ url_for('admin_manifest', flight_id=f.flight_id) }}">Manifest</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <div class="section__head"><h2>Latest bookings</h2>
+    <p class="lede">The eight most recent PNRs across every customer.</p></div>
+  {% if not recent %}
+    <div class="empty"><b>No bookings yet</b>Book one from the customer side and it appears here.</div>
+  {% else %}
+  <div class="tw">
+    <table>
+      <thead><tr><th>PNR</th><th>Customer</th><th>Flights</th><th class="num">Pax</th>
+                 <th class="num">Value</th><th>Status</th><th>Booked</th></tr></thead>
+      <tbody>
+        {% for b in recent %}
+        <tr>
+          <td><b class="mono" style="letter-spacing:.08em">{{ b.pnr }}</b></td>
+          <td>{{ b.full_name }}<br><span class="muted mono" style="font-size:10px">{{ b.email }}</span></td>
+          <td class="mono">{{ b.flights or '—' }}</td>
+          <td class="num">{{ b.pax }}</td>
+          <td class="num">₹{{ b.total|rupees }}</td>
+          <td>{% if b.status == 'CANCELLED' %}<span class="pill pill--beacon">Cancelled</span>
+              {% else %}<span class="pill pill--threshold">Confirmed</span>{% endif %}</td>
+          <td class="mono" style="font-size:11px">{{ b.booked_at.strftime('%d %b %H:%M') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

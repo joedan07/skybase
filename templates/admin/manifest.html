@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Manifest {{ flight.flight_no }} · SkyBase Ops{% endblock %}
+
+{% block body %}
+<section class="wrap" style="padding-top:28px">
+  <div class="adm-head">
+    <div>
+      <span class="tag tag--beacon">Report R-01 · flight manifest</span>
+      <h1 style="margin-top:6px">{{ flight.flight_no }} · {{ flight.origin }} → {{ flight.destination }}</h1>
+      <p class="lede">{{ flight.sched_dep|daymon }} · {{ flight.sched_dep|hhmm }}–{{ flight.sched_arr|hhmm }} ·
+        {{ flight.model }} ({{ flight.tail_number }}) ·
+        {{ flight.seats_sold }} of {{ flight.capacity }} seats ·
+        load factor {{ flight.load_factor_pct or 0 }}%</p>
+    </div>
+    <div class="stack push">
+      <span class="pill pill--sodium">₹{{ flight.gross_revenue|rupees }}</span>
+      <a class="btn btn--ghost btn--sm" href="{{ url_for('admin_flights', date=flight.dep_date) }}">Back</a>
+    </div>
+  </div>
+
+  {% if not pax %}
+    <div class="empty"><b>Nobody booked yet</b>An empty manifest is still a correct manifest.</div>
+  {% else %}
+  <div class="tw">
+    <table>
+      <thead><tr><th>Seat</th><th>Passenger</th><th>Cabin</th><th>PNR</th>
+                 <th>Ticket</th><th>Phone</th><th>Boarding</th></tr></thead>
+      <tbody>
+        {% for p in pax %}
+        <tr>
+          <td><b class="iata" style="font-size:15px;color:var(--sodium)">{{ p.seat_no or '—' }}</b></td>
+          <td><b>{{ p.full_name }}</b></td>
+          <td>{% if p.cabin == 'BUSINESS' %}<span class="pill pill--sodium">Business</span>
+              {% else %}<span class="pill">Economy</span>{% endif %}</td>
+          <td class="mono">{{ p.pnr }}</td>
+          <td class="mono" style="font-size:11px">{{ p.ticket_no }}</td>
+          <td class="mono">{{ p.phone or '—' }}</td>
+          <td>{% if p.status == 'CHECKED_IN' %}
+                <span class="pill pill--threshold">{{ p.checked_in_at.strftime('%H:%M') }}</span>
+              {% else %}<span class="pill">Not checked in</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <details class="sqlbox">
+    <summary>The query behind this manifest</summary>
+    <pre>{{ sql }}</pre>
+  </details>
+  {% endif %}
+</section>
+{% endblock %}

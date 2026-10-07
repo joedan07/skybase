@@ -1,0 +1,14 @@
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# secrets — never committed; see .env.example
+.env
+.env.local
+
+# os / editor
+.DS_Store
+.idea/
+.vscode/

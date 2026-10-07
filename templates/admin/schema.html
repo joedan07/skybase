@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}Live schema · SkyBase Ops{% endblock %}
+
+{% block body %}
+<section class="wrap" style="padding-top:28px">
+  <div class="adm-head">
+    <div>
+      <span class="tag tag--beacon">Catalogue</span>
+      <h1 style="margin-top:6px">What the database is actually enforcing</h1>
+      <p class="lede">Read live out of <code>pg_constraint</code>, <code>pg_indexes</code> and
+        <code>pg_trigger</code> — not a copy of the DDL that might have drifted from it.
+        If a constraint is listed here, it is in force right now.</p>
+    </div>
+  </div>
+
+  <div class="kpis" style="margin-bottom:26px">
+    <div class="kpi"><span>Relations</span><b>{{ counts.tables }}</b><em>all in 3NF</em></div>
+    <div class="kpi"><span>Constraints</span><b>{{ counts.constraints }}</b><em>PK · FK · UNIQUE · CHECK</em></div>
+    <div class="kpi"><span>Triggers</span><b>{{ counts.triggers }}</b><em>rules a CHECK cannot express</em></div>
+    <div class="kpi"><span>Views</span><b>{{ counts.views }}</b><em>the reports</em></div>
+  </div>
+
+  <div class="section__head"><h2>Relations</h2></div>
+  <div class="tw" style="margin-bottom:30px">
+    <table>
+      <thead><tr><th>Relation</th><th class="num">Columns</th><th class="num">Rows (approx)</th><th>Constraints</th></tr></thead>
+      <tbody>
+        {% for t in tables %}
+        <tr>
+          <td><b class="mono">{{ t.table_name }}</b></td>
+          <td class="num">{{ t.columns }}</td>
+          <td class="num">{{ t.approx_rows }}</td>
+          <td class="num">{{ grouped.get(t.table_name, [])|length }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section__head stack">
+    <div><h2>Partial unique indexes</h2>
+      <p class="lede">The two rules that make this project work. A plain <code>UNIQUE</code>
+        could not express either, because a cancelled ticket must stop blocking the seat.</p></div>
+    <span class="pill pill--sodium push">the centrepiece</span>
+  </div>
+  <div class="tw" style="margin-bottom:30px">
+    <table>
+      <thead><tr><th>Relation</th><th>Index</th><th>Definition</th></tr></thead>
+      <tbody>
+        {% for i in indexes %}
+        <tr>
+          <td class="mono">{{ i.table_name }}</td>
+          <td><b class="mono" style="font-size:11.5px">{{ i.name }}</b></td>
+          <td class="mono" style="font-size:11px;white-space:normal;color:var(--sodium)">{{ i.definition }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section__head"><h2>Triggers</h2>
+    <p class="lede">Each one enforces a rule that reads another row or another relation,
+      which is exactly why it cannot be a <code>CHECK</code>.</p></div>
+  <div class="tw" style="margin-bottom:30px">
+    <table>
+      <thead><tr><th>Relation</th><th>Trigger</th><th>Definition</th></tr></thead>
+      <tbody>
+        {% for t in triggers %}
+        <tr>
+          <td class="mono">{{ t.table_name }}</td>
+          <td><b class="mono" style="font-size:11.5px">{{ t.name }}</b></td>
+          <td class="mono" style="font-size:10.5px;white-space:normal">{{ t.definition }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section__head"><h2>Every constraint, by relation</h2></div>
+  {% for table, cons in grouped.items() %}
+  <details class="sqlbox" style="margin-bottom:8px">
+    <summary>{{ table }} — {{ cons|length }} constraint{{ '' if cons|length == 1 else 's' }}</summary>
+    <div class="tw" style="border:0;border-radius:0">
+      <table>
+        <thead><tr><th>Kind</th><th>Name</th><th>Definition</th></tr></thead>
+        <tbody>
+          {% for c in cons %}
+          <tr>
+            <td>
+              {% if c.kind == 'PRIMARY KEY' %}<span class="pill pill--sodium">PK</span>
+              {% elif c.kind == 'FOREIGN KEY' %}<span class="pill pill--taxi">FK</span>
+              {% elif c.kind == 'UNIQUE' %}<span class="pill" style="color:var(--violet,#b58ce0)">AK</span>
+              {% else %}<span class="pill pill--threshold">CHECK</span>{% endif %}
+            </td>
+            <td class="mono" style="font-size:11px">{{ c.name }}</td>
+            <td class="mono" style="font-size:10.5px;white-space:normal;color:var(--fg-2)">{{ c.definition }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+  {% endfor %}
+</section>
+{% endblock %}

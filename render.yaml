@@ -1,0 +1,26 @@
+# Render blueprint — one free web service.
+#
+# Flask wants a long-running process, which is the whole reason this is on
+# Render rather than a serverless platform: the booking path holds a
+# SELECT ... FOR UPDATE row lock across a transaction, and the concurrency lab
+# deliberately holds it across a delay. That needs a real server.
+#
+# The database lives on Neon (free tier, no expiry), so DATABASE_URL is set in
+# the Render dashboard rather than here.
+
+services:
+  - type: web
+    name: skybase
+    runtime: python
+    plan: free
+    region: singapore
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 60
+    healthCheckPath: /
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.13.4"
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false        # set this in the dashboard: the Neon pooled URL
