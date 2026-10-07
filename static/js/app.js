@@ -114,7 +114,54 @@
   paint();
 })();
 
-/* ---- 5 · flash messages retire themselves ------------------------------ */
+/* ---- 5 · the hero rotator ----------------------------------------------
+   One word at a time, the way a flip-board cycles a status. */
+(function () {
+  const box = document.getElementById('rotator');
+  if (!box) return;
+  const words = [...box.children];
+  if (words.length < 2) return;
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  let i = 0;
+  setInterval(() => {
+    words[i].classList.replace('is-on', 'is-off');
+    const prev = i;
+    i = (i + 1) % words.length;
+    words[i].classList.remove('is-off');
+    words[i].classList.add('is-on');
+    setTimeout(() => words[prev].classList.remove('is-off'), 650);
+  }, 2100);
+})();
+
+/* ---- 6 · the fact counters --------------------------------------------- */
+(function () {
+  const io = new IntersectionObserver((es) => {
+    es.forEach((e) => {
+      if (!e.isIntersecting) return;
+      io.unobserve(e.target);
+      const to = +e.target.dataset.to;
+      let n = 0;
+      const step = Math.max(1, Math.ceil(to / 26));
+      const id = setInterval(() => {
+        n += step;
+        if (n >= to) { n = to; clearInterval(id); }
+        e.target.textContent = n;
+      }, 34);
+    });
+  }, { threshold: 0.6 });
+  document.querySelectorAll('.count').forEach((el) => io.observe(el));
+})();
+
+/* ---- 7 · the nav tucks up once you scroll ------------------------------ */
+(function () {
+  const nav = document.querySelector('.nav');
+  if (!nav) return;
+  const sync = () => nav.classList.toggle('is-scrolled', scrollY > 12);
+  addEventListener('scroll', sync, { passive: true });
+  sync();
+})();
+
+/* ---- 8 · flash messages retire themselves ------------------------------ */
 (function () {
   const stack = document.getElementById('flashes');
   if (!stack) return;

@@ -3,18 +3,34 @@
 
 {% block body %}
 <section class="hero wrap">
-  <div class="hero__kicker"><span class="tag tag--sodium">Hyderabad · Mumbai · Delhi</span></div>
-  <h1>Night flights,<br><em>honest seats</em></h1>
-  <p class="hero__sub">Three airports, six routes, three airframes — and a database that
-    will not sell the same seat twice, <span class="serif">no matter who clicks first.</span></p>
+  <div class="stack" style="justify-content:space-between;margin-bottom:22px">
+    <span class="tag">Hyderabad <b style="color:var(--sodium)">//</b> Mumbai <b style="color:var(--sodium)">//</b> Delhi</span>
+    <span class="pill pill--threshold"><i class="dot dot--live"></i>Inventory live</span>
+  </div>
 
-  <form class="slip" action="{{ url_for('search') }}" method="get">
-    <div class="slip__head">
-      <span class="tag tag--sodium">Departure slip</span>
-      <span class="tag">SB · {{ now.strftime('%d %b %Y') }}</span>
+  <h1 class="title" aria-label="Board">
+    <span class="ch" style="--i:0">B</span><span class="ch" style="--i:1">O</span><span class="ch" style="--i:2">A</span><span class="ch" style="--i:3">R</span><span class="ch" style="--i:4">D</span><span class="dotmark"></span>
+  </h1>
+
+  <div class="hero__grid">
+    <div>
+      <p class="hero__line">Every seat
+        <span class="rotator" id="rotator"><span class="is-on">searched</span><span>held</span><span>ticketed</span><span>checked in</span><span>flown</span></span>
+        <br>exactly once.</p>
+      <p class="hero__sub">Three airports, six routes, three aircraft — and a database
+        that will not sell the same seat twice, <em>no matter who clicks first.</em></p>
+      <div class="cta">
+        <a href="#find" class="btn">Find a flight <span class="arr">&rarr;</span></a>
+        {% if not me %}<a href="{{ url_for('signup') }}" class="btn btn--ghost">Create account</a>{% endif %}
+      </div>
     </div>
-    <div class="slip__body">
-      <div class="slip__grid">
+
+    <form class="slip" id="find" action="{{ url_for('search') }}" method="get">
+      <div class="slip__head">
+        <span class="tag tag--sodium">Departure slip</span>
+        <span class="tag">SB &middot; {{ now.strftime('%d %b') }}</span>
+      </div>
+      <div class="slip__body">
         <label class="field field--mono">
           <span>From</span>
           <select class="input" name="origin" id="origin" required>
@@ -24,7 +40,6 @@
             {% endfor %}
           </select>
         </label>
-
         <label class="field field--mono">
           <span>To</span>
           <select class="input" name="dest" id="dest" required>
@@ -34,24 +49,31 @@
             {% endfor %}
           </select>
         </label>
-
-        <label class="field field--mono">
-          <span>Date</span>
-          <input class="input" type="date" name="date" value="{{ today }}" min="{{ today }}" required>
-        </label>
-
-        <label class="field field--mono">
-          <span>Cabin</span>
-          <select class="input" name="cabin">
-            <option value="ECONOMY">Economy</option>
-            <option value="BUSINESS">Business</option>
-          </select>
-        </label>
-
-        <div class="field"><button class="btn btn--block" type="submit">Search</button></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <label class="field field--mono">
+            <span>Date</span>
+            <input class="input" type="date" name="date" value="{{ today }}" min="{{ today }}" required>
+          </label>
+          <label class="field field--mono">
+            <span>Cabin</span>
+            <select class="input" name="cabin">
+              <option value="ECONOMY">Economy</option>
+              <option value="BUSINESS">Business</option>
+            </select>
+          </label>
+        </div>
+        <button class="btn btn--block" type="submit">Search flights <span class="arr">&rarr;</span></button>
       </div>
-    </div>
-  </form>
+    </form>
+  </div>
+
+  <div class="facts">
+    <div class="fact"><div class="fact__v"><span class="count" data-to="9">0</span></div><div class="fact__k">Relations</div></div>
+    <div class="fact"><div class="fact__v"><span class="count" data-to="3">0</span><small>NF</small></div><div class="fact__k">Normal form</div></div>
+    <div class="fact"><div class="fact__v"><span class="count" data-to="55">0</span></div><div class="fact__k">Constraints</div></div>
+    <div class="fact"><div class="fact__v"><span class="count" data-to="140">0</span></div><div class="fact__k">Seats mapped</div></div>
+    <div class="fact"><div class="fact__v"><span class="count" data-to="6">0</span></div><div class="fact__k">Routes</div></div>
+  </div>
 </section>
 
 <section class="section wrap">
