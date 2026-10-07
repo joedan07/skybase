@@ -165,23 +165,14 @@ h1, h2, h3, h4 {
     radial-gradient(55% 38% at 50% 108%, rgba(255, 179, 71, 0.09), transparent 70%);
 }
 
-.atmos__apron {
-  position: absolute; left: -40%; right: -40%; bottom: -4%;
-  height: 54vh;
-  transform-origin: 50% 100%;
-  transform: perspective(42vh) rotateX(62deg);
-  background-image:
-    linear-gradient(to right, rgba(140, 170, 210, 0.11) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(140, 170, 210, 0.09) 1px, transparent 1px);
-  background-size: 76px 76px;
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 55%, #000 100%);
-  mask-image: linear-gradient(to bottom, transparent 0%, #000 55%, #000 100%);
-  animation: apron-drift 7s linear infinite;
-  opacity: 0.6;
-}
-
-@keyframes apron-drift {
-  to { background-position: 0 76px, 0 76px; }
+/* The canvas does the apron grid, the route web, the radar sweep and the
+   traffic. See static/js/atmos.js — it is the only moving part on the page. */
+#apron {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  display: block;
+  /* fades out toward the top so headings never fight the lattice */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 22%, #000 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 22%, #000 100%);
 }
 
 /* Runway edge lights: a row of amber pinpricks, lit in sequence. */
@@ -189,14 +180,14 @@ h1, h2, h3, h4 {
   position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
   background-image: radial-gradient(circle, var(--sodium) 0.8px, transparent 1.4px);
   background-size: 34px 2px;
-  opacity: 0.35;
+  opacity: 0.32;
   animation: edge-run 2.4s linear infinite;
 }
 
 @keyframes edge-run { to { background-position: 34px 0; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .atmos__apron, .atmos__edge { animation: none; }
+  .atmos__edge { animation: none; }
 }
 
 .page { position: relative; z-index: 1; }
